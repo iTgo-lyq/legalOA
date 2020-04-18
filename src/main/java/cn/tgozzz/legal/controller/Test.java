@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.UnsupportedEncodingException;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -22,15 +23,9 @@ public class Test {
         return Mono.just("1");
     }
 
-    public static void main(String[] args) {
-        Function<String,String> fn1 = e -> {
-            System.out.println("1");
-            return "2";
-        };
-        Function<String,String>  fn2 = e -> {
-            System.out.println("2");
-            return "3";
-        };
-        fn1.andThen(fn2).apply("1");
+    public static void main(String[] args) throws UnsupportedEncodingException {
+        String s = "鍝堝搱";
+        System.out.println(System.getProperty("file.encoding"));
+       System.out.println( new String(s.getBytes("GBK"), "UTF-8"));
     }
 }
