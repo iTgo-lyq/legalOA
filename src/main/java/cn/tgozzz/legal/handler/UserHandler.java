@@ -14,7 +14,6 @@ import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.ReactiveValueOperations;
 import org.springframework.stereotype.Component;
 import org.springframework.util.DigestUtils;
-import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
@@ -46,7 +45,7 @@ public class UserHandler {
         log.info("listPeople");
         return repository
                 .findAll().collectList()
-                .flatMap(res -> ok().bodyValue(res));
+                .flatMap(res -> ok().contentType(APPLICATION_JSON).bodyValue(res));
     }
 
     /**
@@ -59,7 +58,7 @@ public class UserHandler {
                 .doOnNext(user -> user.setUid(null))
                 .flatMap(repository::save)
                 .collectList()
-                .flatMap(list -> ok().bodyValue(list));
+                .flatMap(list -> ok().contentType(APPLICATION_JSON).bodyValue(list));
     }
 
     /**
@@ -69,7 +68,7 @@ public class UserHandler {
         log.info("deletePeople");
         return repository
                 .deleteAll()
-                .flatMap(res -> ok().bodyValue(res));
+                .flatMap(res -> ok().contentType(APPLICATION_JSON).bodyValue(res));
     }
 
     /**
@@ -98,7 +97,7 @@ public class UserHandler {
                 .switchIfEmpty(Mono.error(new CommonException("手机号重复")))
                 .flatMap(this::updateToken)
                 .flatMap(repository::save)
-                .flatMap(user -> ok().bodyValue("创建成功"));
+                .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue("创建成功"));
     }
 
     /**
@@ -108,7 +107,7 @@ public class UserHandler {
         log.info("getUser");
         return repository
                 .findById(request.pathVariable("uid"))
-                .flatMap(user -> ok().bodyValue(user))
+                .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user))
                 .switchIfEmpty(notFound().build());
     }
 
@@ -120,7 +119,7 @@ public class UserHandler {
         return request
                 .bodyToMono(User.class)
                 .flatMap(repository::save)
-                .flatMap(user -> ok().bodyValue(user));
+                .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user));
     }
 
     /**
@@ -136,7 +135,7 @@ public class UserHandler {
                         .flatMap(oldUser -> repository.save(user))
                         .switchIfEmpty(Mono.error(new CommonException("token 与 uid 不符")))
                 )
-                .flatMap(user -> ok().bodyValue(user));
+                .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user));
     }
 
     /**
@@ -152,7 +151,7 @@ public class UserHandler {
         return operations
                 .get(tokenStr)
                 .flatMap(token -> repository.findById(token.getUid()))
-                .flatMap(user -> ok().bodyValue(user));
+                .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user));
     }
 
     /**
@@ -192,7 +191,7 @@ public class UserHandler {
                 .switchIfEmpty(Mono.error(new CommonException("该用户不存在")))
                 // 更新验证码
                 .flatMap(this::updateToken)
-                .flatMap(user -> ok().bodyValue(user));
+                .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user));
     }
 
     /**
@@ -208,7 +207,7 @@ public class UserHandler {
         return operations
                 .delete(token)
                 .filter(Boolean::booleanValue)
-                .flatMap(res -> ok().bodyValue("退出登录"))
+                .flatMap(res -> ok().contentType(APPLICATION_JSON).bodyValue("退出登录"))
                 .switchIfEmpty(Mono.error(new CommonException("验证都通过了的token呢？ 删除失败？")));
     }
 

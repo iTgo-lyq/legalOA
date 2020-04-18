@@ -1,6 +1,7 @@
 package cn.tgozzz.legal.route;
 
 import cn.tgozzz.legal.filter.SmsCaptchaFilter;
+import cn.tgozzz.legal.handler.ImageHandler;
 import cn.tgozzz.legal.handler.SmsHandler;
 import cn.tgozzz.legal.utils.Checker;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +11,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 
 import java.util.Objects;
 
+import static org.springframework.http.MediaType.*;
 import static org.springframework.web.reactive.function.server.RequestPredicates.*;
 import static org.springframework.web.reactive.function.server.RouterFunctions.*;
 
@@ -17,9 +19,21 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.*
 public class OpenApiRouter {
 
     @Bean
+    RouterFunction<ServerResponse> imageRouter(ImageHandler handler) {
+        return route(
+                POST("/open-api/image").and(contentType(MULTIPART_FORM_DATA, IMAGE_JPEG, IMAGE_PNG)),
+                handler::uploadImage
+        );
+    }
+
+    /**
+     * 短信验证码相关开放接口
+     */
+    @Bean
     RouterFunction<ServerResponse> smsRouter(SmsHandler handler) {
+
         return nest(
-                // 短信接口
+                // 短信接口baseUrl
                 path("/open-api/sms"),
                 // 验证码相关
                 route(GET("/{phone}/captcha")
