@@ -97,7 +97,7 @@ public class ImageHandler {
                     dataBuffer.read(bytes);
                     DataBufferUtils.release(dataBuffer);
                     try {
-                        return new String(new String(bytes, "UTF-8").getBytes("GBK"),"UTF-8");
+                        return new String(bytes, "UTF-8");
                     } catch (UnsupportedEncodingException e) {
                         return "";
                     }
