@@ -19,6 +19,7 @@ import reactor.core.publisher.Mono;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.springframework.web.reactive.function.server.ServerResponse.*;
@@ -96,11 +97,7 @@ public class ImageHandler {
                     byte[] bytes = new byte[dataBuffer.readableByteCount()];
                     dataBuffer.read(bytes);
                     DataBufferUtils.release(dataBuffer);
-                    try {
-                        return new String(bytes, "UTF-8");
-                    } catch (UnsupportedEncodingException e) {
-                        return "";
-                    }
+                    return new String(bytes, StandardCharsets.UTF_8);
                 })
                 .reduce((s, s2) -> s+s2);
     }
