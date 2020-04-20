@@ -14,7 +14,7 @@ import java.io.UnsupportedEncodingException;
 public class User {
 
     @Id
-    private String uid = "";
+    private String uid;
     private String phone = "";
 
     private int age = 99;

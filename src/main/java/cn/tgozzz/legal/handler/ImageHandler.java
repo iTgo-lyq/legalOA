@@ -17,7 +17,6 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -69,7 +68,7 @@ public class ImageHandler {
     /**
      * 重定向到七牛的地址，或者从本地读取
      */
-    public Mono<ServerResponse> getImage() {
+    public Mono<ServerResponse> getImage(ServerRequest request) {
 
         return permanentRedirect(URI.create(QiNiuReturnBody.baseUrl)).build();
     }

@@ -31,7 +31,7 @@ public class LegalOaApplication implements WebFluxConfigurer {
 	@Override
 	public void addResourceHandlers(ResourceHandlerRegistry registry) {
 		registry.addResourceHandler("/resources/**")
-				.addResourceLocations("classpath:/static/")
+				.addResourceLocations("classpath:static/", "classpath:apidoc/")
 				.setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS));
 	}
 

@@ -3,6 +3,7 @@ package cn.tgozzz.legal.route;
 import cn.tgozzz.legal.filter.SmsCaptchaFilter;
 import cn.tgozzz.legal.handler.ImageHandler;
 import cn.tgozzz.legal.handler.SmsHandler;
+import cn.tgozzz.legal.handler.WordHandler;
 import cn.tgozzz.legal.utils.Checker;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,17 +14,24 @@ import java.util.Objects;
 
 import static org.springframework.http.MediaType.*;
 import static org.springframework.web.reactive.function.server.RequestPredicates.*;
+import static org.springframework.web.reactive.function.server.RequestPredicates.contentType;
 import static org.springframework.web.reactive.function.server.RouterFunctions.*;
 
 @Configuration
 public class OpenApiRouter {
 
+    /**
+     * 图片上传下载相关接口，不支持覆盖
+     */
     @Bean
     RouterFunction<ServerResponse> imageRouter(ImageHandler handler) {
-        return route(
-                POST("/open-api/image").and(contentType(MULTIPART_FORM_DATA, IMAGE_JPEG, IMAGE_PNG)),
-                handler::uploadImage
-        );
+
+        return nest(path("/open-api/image"),
+                // 上传图片
+                route(POST("").and(contentType(MULTIPART_FORM_DATA, IMAGE_JPEG, IMAGE_PNG)),
+                        handler::uploadImage)
+                        //获取图片，可能本地，可能转发至七牛
+                .andRoute(GET("/{pid}"), handler::getImage));
     }
 
     /**
@@ -46,6 +54,25 @@ public class OpenApiRouter {
                         // 发送验证码
                         .andRoute(PUT("/{phone}/captcha").and(Checker::phone), handler::setCode)
                 .filter(SmsCaptchaFilter::checkPhone)
+        );
+    }
+
+    /**
+     * word 上传下载格式转换相关接口，不涉及直接操作contract
+     */
+    @Bean
+    RouterFunction<ServerResponse> wordRouter(WordHandler handler) {
+
+        return nest(
+                path("/open-api/word"),
+                route(GET("/{wid}"), handler::getWord)
+                        .andRoute(GET(""), handler::getAllWords)
+                        .andRoute(POST("/{wid}").and(contentType(MULTIPART_FORM_DATA)), handler::updateWord)
+                        .andRoute(POST("/{wid}").and(contentType(TEXT_PLAIN)), handler::updateHtmlDoc)
+                        .andRoute(PUT("/{wid}").and(contentType(MULTIPART_FORM_DATA)), handler::coverWord)
+                        .andRoute(PUT("/{wid}").and(contentType(TEXT_PLAIN)), handler::coverHtmlDoc)
+                        .andRoute(POST("").and(contentType(MULTIPART_FORM_DATA)), handler::uploadWord)
+                        .andRoute(POST("").and(contentType(TEXT_PLAIN)), handler::uploadHtmlDoc)
         );
     }
 }
