@@ -34,7 +34,7 @@ public class UsersRouter {
 
     @Bean
     RouterFunction<ServerResponse> personRouter(UserHandler handler) {
-           return route().path("/users",
+           return route().path("/users/",
                    b1 -> b1.nest(accept(APPLICATION_JSON),
                            b2 -> b2
                                    .filter(authFilter::tokenFilter)
