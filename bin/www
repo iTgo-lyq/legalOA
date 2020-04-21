@@ -1,1 +1,2 @@
-java -jar ../out/artifacts/legal_OA_jar/legal\ OA.jar
+cd ../out/artifacts/legal_OA_jar
+java -jar legal\ OA.jar
