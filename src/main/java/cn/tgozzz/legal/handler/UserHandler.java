@@ -90,11 +90,13 @@ public class UserHandler {
                                         // 核验验证码
                                         .filter(captcha -> request.queryParam("code").get().equals(captcha.getCode()))
                                         .hasElement())
+                                .filter(Boolean::booleanValue)
                                 .hasElement()
                 )
                 .switchIfEmpty(Mono.error(new CommonException("验证码错误")))
                 .filterWhen(user -> repository.findOneByPhone(user.getPhone()).hasElement().map(res -> !res))
                 .switchIfEmpty(Mono.error(new CommonException("手机号重复")))
+                .flatMap(repository::save)
                 .flatMap(this::updateToken)
                 .flatMap(repository::save)
                 .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user));
