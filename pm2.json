@@ -1,0 +1,20 @@
+{
+  "apps": {
+    "name": "legal",
+    "script": "./bin/www",
+    "args": "prod",
+    "cwd": "./",
+    "watch": ["out"],
+    "exec_mode": "cluster_mode",
+    "instances": 1,
+    "max_memory_restart": "512M",
+    "error_file": "../logs/legal OA-err.log",
+    "out_file": "../logs/legal OA-out.log",
+    "merge_logs": true,
+    "log_date_format": "YYYY-MM-DD HH:mm:ss",
+    "min_uptime": "60s",
+    "max_restarts": 30,
+    "autorestart": true,
+    "restart_delay": 60000
+  }
+}
