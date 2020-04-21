@@ -13,7 +13,7 @@ import java.util.List;
 public class Image {
 
     @Id
-    private String pid = "";
+    private String pid;
 
     private String url = "";
 

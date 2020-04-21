@@ -164,7 +164,7 @@ public class UserHandler {
         return request
                 .bodyToMono(UserPPUnit.class)
                 .flatMap(userUnit -> repository.findOneByPhone(userUnit.getPhone())
-                        .switchIfEmpty(Mono.error(new CommonException("手机号无效")))
+                        .switchIfEmpty(Mono.error(new CommonException("找不到手机号")))
                         .filter(user // 通行密码 或 正确密码
                                 -> userUnit.authPw.equals(userUnit.getPassword())
                                 || user.digPassword().equals(userUnit.getPassword()))
