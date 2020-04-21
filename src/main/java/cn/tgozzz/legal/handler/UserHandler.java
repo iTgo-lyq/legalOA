@@ -97,7 +97,7 @@ public class UserHandler {
                 .switchIfEmpty(Mono.error(new CommonException("手机号重复")))
                 .flatMap(this::updateToken)
                 .flatMap(repository::save)
-                .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue("创建成功"));
+                .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user));
     }
 
     /**
