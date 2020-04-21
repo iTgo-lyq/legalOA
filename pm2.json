@@ -1,11 +1,15 @@
 {
   "apps": {
     "name": "legal",
-    "script": "./bin/www",
-    "args": "prod",
+    "script": "/usr/bin/java",
+    "args": [
+      "-jar",
+      "./out/artifacts/legal_OA_jar/legal OA.jar"
+    ],
+    "exec_interpreter": "",
     "cwd": "./",
     "watch": ["out"],
-    "exec_mode": "cluster_mode",
+    "exec_mode": "fork",
     "instances": 1,
     "max_memory_restart": "512M",
     "error_file": "../logs/legal OA-err.log",
