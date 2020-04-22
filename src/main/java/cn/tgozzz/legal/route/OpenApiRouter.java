@@ -2,6 +2,7 @@ package cn.tgozzz.legal.route;
 
 import cn.tgozzz.legal.filter.SmsCaptchaFilter;
 import cn.tgozzz.legal.handler.ImageHandler;
+import cn.tgozzz.legal.handler.LtpHandler;
 import cn.tgozzz.legal.handler.SmsHandler;
 import cn.tgozzz.legal.handler.WordHandler;
 import cn.tgozzz.legal.utils.Checker;
@@ -74,5 +75,17 @@ public class OpenApiRouter {
                         .andRoute(POST("").and(contentType(MULTIPART_FORM_DATA)), handler::uploadWord)
                         .andRoute(POST("").and(contentType(TEXT_PLAIN)), handler::uploadHtmlDoc)
         );
+    }
+
+    /**
+     * 自然语言处理相关接口
+     */
+    @Bean
+    RouterFunction<ServerResponse> ltpRouter(LtpHandler handler) {
+        // 中文分词(cws)、词性标注(pos)、依存句法分析(dp)、命名实体识别(ner)
+        // 语义角色标注(srl)、语义依存 (依存树)(sdp) (依存图)(sdgp)、关键词提取(ke)
+        return route().path("/open-api/ltp", builder -> builder
+                .POST("/{mode}", handler::LP)
+        ).build();
     }
 }
