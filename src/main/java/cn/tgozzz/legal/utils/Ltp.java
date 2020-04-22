@@ -10,6 +10,7 @@ import com.tencentcloudapi.nlp.v20190408.NlpClient;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.digest.DigestUtils;
+import org.springframework.stereotype.Component;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -25,6 +26,7 @@ import static org.springframework.web.reactive.function.BodyInserters.*;
  * 自然语言处理 各平台接口整合
  */
 @Log4j2
+@Component
 public class Ltp {
     /******** 讯飞 ** 配置 *******************/
     private static final String WEBTTS_URL_XF = "http://ltpapi.xfyun.cn/v1";
@@ -36,7 +38,6 @@ public class Ltp {
     private static final String APP_ID_BD = "19548458";
     private static final String API_KEY_BD = "tfAqyaCu9OZxng2pO4bwIPgW";
     private static final String SECRET_KEY_BD = "RfddKDBNgdLIdXjxvzPfYwEFewxWYs49";
-    private static final AipNlp client = new AipNlp(APP_ID_BD, API_KEY_BD, SECRET_KEY_BD);
 
     /******** 腾讯 ** 配置 *******************/
     private static final String API_KEY_TX = "AKIDhCRQ8ZRfKirjsmjpwoRpxtdkbCXbtx87";
@@ -61,6 +62,7 @@ public class Ltp {
      * 百度接NLP接口汇总
      */
     public static Mono<String> analyzeByBD(String mode, String... text) {
+        AipNlp client = new AipNlp(APP_ID_BD, API_KEY_BD, SECRET_KEY_BD);
         String res;
         try {
         Class ClientClazz = Class.forName("com.baidu.aip.nlp.AipNlp");
