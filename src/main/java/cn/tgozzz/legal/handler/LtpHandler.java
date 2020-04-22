@@ -11,7 +11,6 @@ import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import static org.springframework.http.MediaType.*;
 import static org.springframework.web.reactive.function.server.ServerResponse.*;
 
 @Log4j2
@@ -41,11 +40,7 @@ public class LtpHandler {
         String mode = request.pathVariable("mode");
         log.info("LP :: " + mode);
         return Mono.just(mode)
-                .doOnNext(System.out::println)
-                .map(LtpHandler::shunt)
-                .doOnNext(System.out::println)
-                .switchIfEmpty(Mono.error(new CommonException("分析模式错误")))
-                .doOnNext(System.out::println)
+                .flatMap(LtpHandler::shunt)
                 .flatMap(m ->
                         request.bodyToMono(String.class)
                                 .switchIfEmpty(Mono.error(new CommonException("内容不可为空")))
@@ -67,18 +62,19 @@ public class LtpHandler {
 
     /**
      * 是否非法的mode
+     * @return
      */
-    private static String shunt(String mode) {
+    private static Mono<String> shunt(String mode) {
         for (String m : XunFeiPlatform) {
-            if (m.equals(mode)) return "XunFei";
+            if (m.equals(mode)) return Mono.just("XunFei");
         }
         for (String m : BaiDuPlatform) {
-            if (m.equals(mode)) return "BaiDu";
+            if (m.equals(mode)) return Mono.just("BaiDu");
         }
         for (String m : TencentPlatform) {
-            if (m.equals(mode)) return "Tencent";
+            if (m.equals(mode)) return Mono.just("Tencent");
         }
-        return null;
+        return Mono.error(new CommonException("分析模式错误"));
     }
 
     /**
