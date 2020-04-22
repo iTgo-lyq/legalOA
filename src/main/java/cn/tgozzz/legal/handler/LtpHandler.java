@@ -41,8 +41,11 @@ public class LtpHandler {
         String mode = request.pathVariable("mode");
         log.info("LP :: " + mode);
         return Mono.just(mode)
+                .doOnNext(System.out::println)
                 .map(LtpHandler::shunt)
+                .doOnNext(System.out::println)
                 .switchIfEmpty(Mono.error(new CommonException("分析模式错误")))
+                .doOnNext(System.out::println)
                 .flatMap(m ->
                         request.bodyToMono(String.class)
                                 .switchIfEmpty(Mono.error(new CommonException("内容不可为空")))

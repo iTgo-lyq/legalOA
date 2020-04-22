@@ -28,9 +28,9 @@ public class GlobalErrorAttributes extends DefaultErrorAttributes {
             // 自定义错误属性追加
             errorAttributes.putAll(((CommonException) error).getAttributesMap());
         } else {
-            if(!(error instanceof ResponseStatusException && ((ResponseStatusException) error).getStatus().value() != 404)){
+            if(!(error instanceof ResponseStatusException && ((ResponseStatusException) error).getStatus().value() == 404)){
                 // 不是自定义错误也不是404，打印堆栈
-                log.warn(super.getErrorAttributes(request, true));
+                log.error(super.getErrorAttributes(request, true));
 
                 errorAttributes.put("code", -1);
                 errorAttributes.put("tip", "猜猜你错了还是我错了 🐷^(*￣(oo)￣)^");
