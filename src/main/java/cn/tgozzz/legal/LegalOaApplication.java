@@ -30,11 +30,12 @@ public class LegalOaApplication implements WebFluxConfigurer {
 	// 配置静态资源目录
 	@Override
 	public void addResourceHandlers(ResourceHandlerRegistry registry) {
+		registry.addResourceHandler( "/apidoc/*")
+				.addResourceLocations("classpath:apidoc/")
+				.setCacheControl(CacheControl.noCache());
 		registry.addResourceHandler("/resources/**")
 				.addResourceLocations("classpath:static/")
 				.setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS));
-		registry.addResourceHandler( "/apidoc/*")
-				.addResourceLocations("classpath:apidoc/");
 	}
 
 	public static void main(String[] args) {
