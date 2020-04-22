@@ -2,16 +2,12 @@ package cn.tgozzz.legal;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.embedded.netty.NettyReactiveWebServerFactory;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.CacheControl;
-import org.springframework.http.codec.ServerCodecConfigurer;
 import org.springframework.web.reactive.config.CorsRegistry;
 import org.springframework.web.reactive.config.EnableWebFlux;
 import org.springframework.web.reactive.config.ResourceHandlerRegistry;
 import org.springframework.web.reactive.config.WebFluxConfigurer;
 
-import java.nio.charset.Charset;
 import java.util.concurrent.TimeUnit;
 
 @SpringBootApplication
