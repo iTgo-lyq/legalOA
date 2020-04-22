@@ -25,10 +25,9 @@ public class LtpHandler {
 
     // 词法分析(lexerCustom)、依存句法分析(depParser)、DNN语言模型(dnnlmCn)
     // 词义相似度(wordSimEmbedding)、短文本相似度(simnet)
-    // 文章标签(keyword)、文章分类(topic)、文本纠错(ecnet)、新闻摘要接口(newsSummary)、地址识别接口(address)
+    // 文章标签(keyword)、文章分类(topic)、文本纠错(ecnet)、新闻摘要接口(newsSummary)
     private static final ArrayList<String> BaiDuPlatform
-            = new ArrayList<>(Arrays.asList("lexerCustom", "depParser", "dnnlmCn", "wordSimEmbedding", "simnet", "keyword", "ecnet",
-            "newsSummary", "address"));
+            = new ArrayList<>(Arrays.asList("lexerCustom", "depParser", "dnnlmCn", "wordSimEmbedding", "simnet", "keyword", "ecnet", "newsSummary"));
 
     // 文本纠错(TextCorrection)、句法依存分析(DependencyParsing)、词向量(WordEmbedding)、句向量(SentenceEmbedding)
     // 词相似度(WordSimilarity)、文本相似度 (SentenceSimilarity)、自动摘要(AutoSummarization)、关键词提取(KeywordsExtraction)
