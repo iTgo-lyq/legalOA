@@ -1,7 +1,7 @@
 {
   "apps": {
     "name": "legal",
-    "script": "/usr/bin/java",
+    "script": "/usr/local/bin/java-11",
     "args": [
       "-jar",
       "./out/artifacts/legal_OA_jar/legal OA.jar"
