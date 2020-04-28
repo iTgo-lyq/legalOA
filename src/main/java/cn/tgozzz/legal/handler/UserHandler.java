@@ -1,9 +1,11 @@
 package cn.tgozzz.legal.handler;
 
 import cn.tgozzz.legal.domain.Captcha;
+import cn.tgozzz.legal.domain.Template;
 import cn.tgozzz.legal.domain.Token;
 import cn.tgozzz.legal.domain.User;
 import cn.tgozzz.legal.exception.CommonException;
+import cn.tgozzz.legal.repository.TemplateRepository;
 import cn.tgozzz.legal.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -30,11 +32,14 @@ public class UserHandler {
 
     private final UserRepository repository;
 
+    private final TemplateRepository templateRepository;
+
     private final ReactiveRedisTemplate reactiveRedisTemplate;
 
-    public UserHandler(UserRepository repository, ReactiveRedisTemplate reactiveRedisTemplate) {
+    public UserHandler(UserRepository repository, TemplateRepository templateRepository, ReactiveRedisTemplate reactiveRedisTemplate) {
 
         this.repository = repository;
+        this.templateRepository = templateRepository;
         this.reactiveRedisTemplate = reactiveRedisTemplate;
     }
 
@@ -166,7 +171,7 @@ public class UserHandler {
                 .flatMap(userUnit -> repository.findOneByPhone(userUnit.getPhone())
                         .switchIfEmpty(Mono.error(new CommonException("找不到手机号")))
                         .filter(user // 通行密码 或 正确密码
-                                -> userUnit.authPw.equals(userUnit.getPassword())
+                                -> UserPPUnit.authPw.equals(userUnit.getPassword())
                                 || user.digPassword().equals(userUnit.getPassword()))
                         .switchIfEmpty(Mono.error(new CommonException("密码错误"))))
                 // 更新token
@@ -213,6 +218,49 @@ public class UserHandler {
                 .switchIfEmpty(Mono.error(new CommonException("验证都通过了的token呢？ 删除失败？")));
     }
 
+    /**
+     * 添加模板收藏
+     * 模板被收藏数+1
+     */
+    public Mono<ServerResponse> markTemplate(ServerRequest request) {
+        log.info("markTemplate");
+        String uid = request.pathVariable("uid");
+
+        return request.bodyToMono(MarkTemplateUnit.class)
+                .map(unit -> unit.getTid())
+                .flatMap(templateRepository::findById)
+                .switchIfEmpty(Mono.error(new CommonException(404, "模板id无效")))
+                .doOnNext(Template::addStar)
+                .flatMap(template -> repository
+                        .findById(uid)
+                        .switchIfEmpty(Mono.error(new CommonException(404, "用户id无效")))
+                        .filter(user -> user.markTemplate(template.getTid()))
+                        .doOnNext(user -> templateRepository.save(template))
+                        .switchIfEmpty(Mono.error(new CommonException("重复收藏"))))
+                .flatMap(repository::save)
+                .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user.getTemplate()));
+    }
+
+    /**
+     * 取消模板收藏
+     */
+    public Mono<ServerResponse> cancelMarkTemplate(ServerRequest request) {
+        log.info("cancelMarkTemplate");
+        String uid = request.pathVariable("uid");
+        String tid = request.pathVariable("tid");
+
+        return repository.findById(uid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "用户id无效")))
+                .filter(user -> user.cancelMarkTemplate(tid))
+                .switchIfEmpty(Mono.error(new CommonException("模板未收藏")))
+                .flatMap(repository::save)
+                .flatMap(user -> templateRepository.findById(tid))
+                .doOnNext(Template::reduceStar)
+                .flatMap(templateRepository::save)
+                .flatMap(template -> ok().bodyValue("取消收藏"))
+                .switchIfEmpty(ok().bodyValue("模板id无效，收藏已取消"));
+    }
+
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -236,8 +284,15 @@ public class UserHandler {
         private String code;
     }
 
+    @Data
+    @NoArgsConstructor
+    static class MarkTemplateUnit {
+        private String tid;
+    }
+
     /**
      * 更新用户token，删除旧token
+     *
      * @return
      */
     @SneakyThrows
@@ -256,8 +311,8 @@ public class UserHandler {
         // 删除缓存
         if (oldT != null)
             operations.delete(oldT).subscribe(aBoolean -> {
-                        if (!aBoolean) log.warn("删除token失败");
-                    });
+                if (!aBoolean) log.warn("删除token失败");
+            });
 
         // 缓存新的
         operations.set(u.getToken(), new Token(u.getUid(), u.getToken()), java.time.Duration.ofDays(5))

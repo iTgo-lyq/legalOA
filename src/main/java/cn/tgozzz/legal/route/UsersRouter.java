@@ -1,6 +1,7 @@
 package cn.tgozzz.legal.route;
 
 import cn.tgozzz.legal.filter.AuthFilter;
+import cn.tgozzz.legal.handler.TemplateHandler;
 import cn.tgozzz.legal.handler.UserHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -18,9 +19,14 @@ public class UsersRouter {
     @Autowired
     private AuthFilter authFilter;
 
+    @Bean RouterFunction<ServerResponse> tempRouter(UserHandler handler) {
+        return nest(path("/users/{uid}/template/mark"),
+                route(DELETE("/{tid}"), handler::cancelMarkTemplate)
+                        .andRoute(POST(""), handler::markTemplate));
+    }
+
     @Bean
     RouterFunction<ServerResponse> loginRouter(UserHandler handler) {
-
         return nest(path("/users/login")
                 , route
                         (PUT("/pw"), handler::loginByPw).andRoute

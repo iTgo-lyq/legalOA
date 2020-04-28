@@ -27,7 +27,7 @@ import static org.springframework.web.reactive.function.server.ServerResponse.*;
 @Log4j2
 public class ImageHandler {
 
-    static private String baseUrl = "http://q8tpx3tgs.bkt.clouddn.com/";
+    static private final String baseUrl = "http://q8tpx3tgs.bkt.clouddn.com/";
 
     private final ImageRepository repository;
 
@@ -79,7 +79,7 @@ public class ImageHandler {
     @SneakyThrows
     private Mono<List<String>> json2StringList(String s) {
         ObjectMapper mapper = new ObjectMapper();
-        if(s.equals("")) return Mono.just(Arrays.asList(new String[0]));
+        if(s.equals("")) return Mono.just(Collections.emptyList());
         String[] arr = mapper.readValue(s, String[].class);
         return Mono.just(Arrays.asList(arr));
     }
