@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
+import java.util.Objects;
+
 import static org.springframework.http.MediaType.*;
 import static org.springframework.web.reactive.function.server.RequestPredicates.*;
 import static org.springframework.web.reactive.function.server.RouterFunctions.*;
@@ -48,6 +50,7 @@ public class TemplatesRouter {
     @Bean
     RouterFunction<ServerResponse> templateRoute(TemplateHandler handler) {
         return nest(path("/templates"), route()
+                .GET("",queryParam("name", Objects::nonNull), handler::searchTemplates)
                 .GET("", handler::listGroup)
                 .POST("", handler::addGroup)
                 .build())

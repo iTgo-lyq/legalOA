@@ -19,5 +19,6 @@ public interface UserRepository extends ReactiveMongoRepository<User, String> {
      */
     Mono<User> findAndUpdateByToken(String oldT, String newT);
 
+    Mono<User> findOneByName(String system);
 }
 

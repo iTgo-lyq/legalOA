@@ -64,7 +64,7 @@ public class Template {
     /**
      * 通过新增版本进行更新
      */
-    public void updateByExtend(String oldTid, User user) {
+    public void updateByExtend(String oldTid, User user, Template template) {
         this.baseT.clear();
         this.baseT.add(oldTid);
         this.owner = user.getUid();
@@ -72,13 +72,13 @@ public class Template {
         this.createTime = new Date().getTime();
         this.apply = 0;
         this.star = 0;
-        this.setUpdateInfo("用户" + user.getName() + "基于文件" + oldTid + "创建此版本");
+        this.setUpdateInfo("用户" + user.getName() + "基于文件 " + template.getName() + " 创建此版本");
     }
 
     /**
      * 推测更新模式
      */
     public String updateMode() {
-        return null;
+        return this.modifier.equals("") ? "extend" : "cover";
     }
 }

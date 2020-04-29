@@ -2,6 +2,7 @@ package cn.tgozzz.legal.utils;
 
 import cn.tgozzz.legal.domain.Token;
 import cn.tgozzz.legal.domain.User;
+import cn.tgozzz.legal.exception.CommonException;
 import cn.tgozzz.legal.repository.UserRepository;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.core.ReactiveValueOperations;
@@ -43,9 +44,15 @@ public class TokenUtils {
         String tokenStr = request.headers().header("Authorization").get(0);
         ReactiveValueOperations<String, Token> operations = reactiveRedisTemplate.opsForValue();
 
+        Mono<User> defaultU = tokenStr.equals("token") ? repository
+                        .findOneByName("system")
+                        .switchIfEmpty(Mono.error(new CommonException(403, "管理员尚未建立")))
+                : Mono.error(new CommonException(403, "中奖了，token 执行中 过期, 执行到哪一步俺也不知道"));
+
         return operations.get(tokenStr)
                 .map(Token::getUid)
-                .flatMap(repository::findById);
+                .flatMap(repository::findById)
+                .switchIfEmpty(defaultU);
     }
 
     /**

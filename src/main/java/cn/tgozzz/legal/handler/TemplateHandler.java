@@ -7,6 +7,7 @@ import cn.tgozzz.legal.repository.TemplateGroupRepository;
 import cn.tgozzz.legal.repository.TemplateRepository;
 import cn.tgozzz.legal.utils.Office;
 import cn.tgozzz.legal.utils.TokenUtils;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,23 +59,30 @@ public class TemplateHandler {
         String tgid = request.pathVariable("tgid");
 
         return request.multipartData()
+                // 获取文件部分信息
                 .map(map -> map.get("file"))
                 .flux()
-                .flatMap(parts -> Flux.fromStream(parts.stream()))// 多文件转流
+                // 多文件转流
+                .flatMap(parts -> Flux.fromStream(parts.stream()))
                 .flatMap(part -> {
-                    Template template = new Template(); // 创建模板记录
+                    // 创建模板记录
+                    Template template = new Template();
                     template.setName(((FilePart) part).filename());
                     template.setGroup(tgid);
-                    return tempRepository.save(template)// 拿到记录实体
-                            .flatMap(t -> Office.upload(part, t.getTid()) // 上传office服务器
-                                    .map(s -> s.contains("filename"))
-                                    .doOnNext(aBoolean -> { // 上传成功，设置uri，否则设null
-                                        if (aBoolean)
-                                            t.setUri("http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/" + t.getTid());
-                                        else
-                                            t.setUri(null);
-                                    })
-                                    .flatMap(aBoolean -> tempRepository.save(t))
+                    return tempRepository.save(template)
+                            // 拿到模板记录实体
+                            .flatMap(t ->
+                                    // 上传office服务器
+                                    Office.upload(part, t.getTid())
+                                            .map(s -> s.contains("filename"))
+                                            // 上传成功，设置uri，否则设null
+                                            .doOnNext(aBoolean -> {
+                                                if (aBoolean)
+                                                    t.setUri("http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/" + t.getTid());
+                                                else
+                                                    t.setUri(null);
+                                            })
+                                            .flatMap(aBoolean -> tempRepository.save(t))
                             );
                 })
                 .collectList()
@@ -90,13 +98,22 @@ public class TemplateHandler {
         String tgid = request.pathVariable("tgid");
 
         return request.bodyToMono(AddTempUnit.class)
-                .flatMap(unit -> tempGroupRepository //模板组状态更新
-                        .findById(tgid)
-                        .filter(templateGroup -> unit.getList().size() != 0)
-                        .switchIfEmpty(Mono.error(new CommonException("空模板")))
-                        .doOnNext(templateGroup -> templateGroup.addTemplate(unit.getList(), unit.getInfo()))
-                        .flatMap(tempGroupRepository::save)
-                        .switchIfEmpty(Mono.error(new CommonException(404, "模板组id无效"))))
+                //获取更新信息
+                .flatMap(unit -> tokenUtils.getUser(request)
+                        // 我的模板添加
+                        .doOnNext(user -> user.updateMineTemp(unit.getList()))
+                        .flatMap(user -> tempGroupRepository
+                                .findById(tgid)
+                                .filter(templateGroup -> unit.getList().size() != 0)
+                                .switchIfEmpty(Mono.error(new CommonException("空模板")))
+                                // 模板组添加信息
+                                .doOnNext(templateGroup ->
+                                        templateGroup.addTemplate(unit.getList(), unit.getInfo(), user))
+                                .flatMap(tempGroupRepository::save)
+                                .flatMap(group -> tokenUtils.saveUser(user)
+                                        .map(u -> group))
+                                .switchIfEmpty(Mono.error(new CommonException(404, "模板组id无效"))))
+                )
                 .flatMap(templateGroup -> ok().bodyValue(templateGroup));
     }
 
@@ -140,38 +157,49 @@ public class TemplateHandler {
      * 选择更新模式：覆盖 or 新增 （必须选）
      * 覆盖：模板组内覆盖tid, baseT追加旧tid
      * 新增：模板组内追加tid, 清空旧模板信息, 添加owner等相关属性, baseT重置到唯一旧tid
+     * 用户新增我的模板
+     * office服务器copy对应模板, 返回配置示例
      */
     public Mono<ServerResponse> applyToUpdateTemp(ServerRequest request) {
         log.info("applyToUpdateTemp");
-        String tid = request.pathVariable("tid");
+        String oldTid = request.pathVariable("tid");
         String mode = request.queryParam("mode").orElse("extend").trim();
 
         if (!(mode.equals("cover") | mode.equals("extend"))) return Mono.error(new CommonException(400, "模式无效"));
 
-        return tempRepository.findById(tid)
+        return tempRepository.findById(oldTid)
                 .switchIfEmpty(Mono.error(new CommonException(404, "模板id无效")))
                 .doOnNext(template -> template.setTid(null))
-                .flatMap(tempRepository::save) //获取新的id
-                .flatMap(template ->
-                     tokenUtils.getUser(request) //获取用户信息
-                            .doOnNext(user -> {
-                                if (mode.equals("cover")){
-                                    template.updateByCover(tid, user);
-                                    user.updateMineTemp(tid, template.getTid());
-                                } else{
-                                    template.updateByExtend(tid, user);
-                                    user.updateMineTemp(template.getTid());
-                                }
-                            })
-                            .flatMap(tokenUtils::saveUser)
-                            .map(user -> template))
+                //获取新的id
                 .flatMap(tempRepository::save)
-                .flatMap(template -> ok().bodyValue(template));
+                .flatMap(template -> Office
+                        // office服务器copy操作
+                        .copyTemplate(oldTid, template.getTid())
+                        .filter(Boolean::booleanValue)
+                        .flatMap(s -> tokenUtils.getUser(request)
+                                //获取用户信息
+                                .doOnNext(user -> {
+                                    if (mode.equals("cover")) {
+                                        template.updateByCover(oldTid, user);
+                                        user.updateMineTemp(oldTid, template.getTid());
+                                    } else {
+                                        template.updateByExtend(oldTid, user, template);
+                                        user.updateMineTemp(template.getTid());
+                                    }
+                                })
+                                .flatMap(tokenUtils::saveUser)
+                                .map(user -> template)))
+                .flatMap(tempRepository::save)
+                .flatMap(template -> Office
+                        .applyToEdit(template.getTid(), template.getName() + "." + template.getType())
+                        .flatMap(s -> Mono.just(new ApplyToUpdateTempSeed(template, s))))
+                .flatMap(res -> ok().bodyValue(res));
     }
 
     /**
      * 更新模板信息
-     * 更新模板组动态（更新了模板 or 创建了模板）
+     * 更新模板组动态（更新了模板 or 创建了模板 or 修改了模板信息）
+     * 经过此接口后，更新者必定不为空
      */
     public Mono<ServerResponse> updateTemp(ServerRequest request) {
         log.info("updateTemp");
@@ -179,18 +207,49 @@ public class TemplateHandler {
         String tid = request.pathVariable("tid");
 
         return tempRepository.findById(tid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "模板id无效")))
+                // 获取旧模板信息
                 .flatMap(template -> {
                     String mode = template.updateMode();
-                    return tempGroupRepository.findById(tgid)
-                            .switchIfEmpty(Mono.error(new CommonException(404, "模板组id无效")))
-                            .flatMap(group -> {
-                                if (mode.equals("cover"))
-                                    group.coverTemplate(template);
-                                else
-                                    group.extendTemplate(template);
-
-                                return tempGroupRepository.save(group);
-                            });
+                    // 获取用户信息
+                    return tokenUtils.getUser(request)
+                            .flatMap(user ->
+                                    // 获取新模板更新信息
+                                    request.bodyToMono(UpdateTempUnit.class)
+                                            // 更新模板文件信息
+                                            .map(unit -> {
+                                                template.setModifier(user.getUid());
+                                                template.setName(unit.getName());
+                                                template.setGroup(unit.getGroup());
+                                                template.setInfo(unit.getInfo());
+                                                template.setUpdateInfo(unit.getUpdateInfo());
+                                                return template;
+                                            })
+                                            .flatMap(tempRepository::save)
+                                            // 更新模板组信息
+                                            .flatMap(t -> tempGroupRepository
+                                                    .findById(t.getGroup())
+                                                    .flatMap(group -> {
+                                                        // 如果两个组不一致，则删除原来的组中模板
+                                                        if (!(tgid.equals(t.getGroup())))
+                                                            return tempGroupRepository
+                                                                    .findById(template.getGroup())
+                                                                    .switchIfEmpty(Mono.error(new CommonException(404, "原模板组id无效")))
+                                                                    .doOnNext(g -> g.deleteTemplate(template, g, user))
+                                                                    .flatMap(tempGroupRepository::save)
+                                                                    .map(g -> group);
+                                                        else
+                                                            return Mono.just(group);
+                                                    }))
+                                            .switchIfEmpty(Mono.error(new CommonException(404, "当前模板组id无效")))
+                                            .flatMap(group -> {
+                                                        if (mode.equals("cover"))
+                                                            group.coverTemplate(template, user);
+                                                        else
+                                                            group.extendTemplate(template, user);
+                                                        return Mono.just(group);
+                                                    }
+                                            ).flatMap(tempGroupRepository::save));
                 })
                 .flatMap(group -> ok().bodyValue(group));
     }
@@ -198,6 +257,7 @@ public class TemplateHandler {
     /**
      * 删除模板
      * 更新模板组动态
+     * 若模板不属于该用户，则模板实际不会被删除
      */
     public Mono<ServerResponse> deleteTmp(ServerRequest request) {
         log.info("deleteTmp");
@@ -207,11 +267,21 @@ public class TemplateHandler {
         return tempGroupRepository
                 .findById(tgid)
                 .switchIfEmpty(Mono.error(new CommonException(404, "tgid 无效")))
-                .doOnNext(templateGroup -> tempRepository
-                        .findById(tid)
-                        .switchIfEmpty(Mono.error(new CommonException(404, "tgid无效")))
-                        .doOnNext(template -> templateGroup.setUpdateInfo("用户" + null + " 删除了 模板" + template.getName()))
-                        .flatMap(tempRepository::delete))
+                .flatMap(templateGroup -> tokenUtils
+                        .getUser(request)
+                        .flatMap(user -> tempRepository
+                                .findById(tid)
+                                .switchIfEmpty(Mono.error(new CommonException(404, "tid无效")))
+                                .doOnNext(template -> templateGroup.deleteTemplate(template, user))
+                                // 如果该模板属于该用户，则会被实际删除
+                                .filter(user::deleteTemplate)
+                                .flatMap(tempRepository::delete)
+                                .map(aVoid -> user)
+                                .flatMap(tokenUtils::saveUser)
+                                .map(u -> templateGroup)
+                                .switchIfEmpty(Mono.just(templateGroup))
+                        )
+                )
                 .flatMap(tempGroupRepository::save)
                 .flatMap(aVoid -> ok().build());
     }
@@ -245,6 +315,7 @@ public class TemplateHandler {
         log.info("listGroup");
         return tempGroupRepository
                 .findAll()
+                .doOnNext(templateGroup -> templateGroup.setTemplates(null))
                 .collectList()
                 .flatMap(templateGroups ->
                         ok().contentType(APPLICATION_JSON).bodyValue(templateGroups));
@@ -259,16 +330,18 @@ public class TemplateHandler {
 
         return request
                 .bodyToMono(UpdateGroupUnit.class)
-                .flatMap(groupUnit -> tempGroupRepository
-                        .findById(tgid)
-                        .switchIfEmpty(Mono.error(new CommonException(404, "tgid 错误， 找不到模板组")))
-                        .map(templateGroup -> {
-                            templateGroup.setCategory(groupUnit.getCategory());
-                            templateGroup.setPermission(groupUnit.getPermission());
-                            templateGroup.setInfo(groupUnit.getInfo());
-                            return templateGroup;
-                        })
-                )
+                .flatMap(unit -> tokenUtils
+                        .getUser(request)
+                        .flatMap(user -> tempGroupRepository
+                                .findById(tgid)
+                                .switchIfEmpty(Mono.error(new CommonException(404, "tgid 错误， 找不到模板组")))
+                                .map(templateGroup -> {
+                                    templateGroup.setCategory(unit.getCategory());
+                                    templateGroup.setPermission(unit.getPermission());
+                                    templateGroup.setInfo(unit.getInfo());
+                                    templateGroup.setUpdateInfo("用户" + user.getName() + "更新了 模板组信息");
+                                    return templateGroup;
+                                })))
                 .flatMap(tempGroupRepository::save)
                 .flatMap(templateGroup -> ok().contentType(APPLICATION_JSON).bodyValue(templateGroup));
     }
@@ -285,6 +358,36 @@ public class TemplateHandler {
                 .switchIfEmpty(Mono.error(new CommonException(404, "tgid 错误， 找不到模板")))
                 .flatMap(tempGroupRepository::delete)
                 .flatMap(aVoid -> ok().bodyValue("删除成功"));
+    }
+
+    /**
+     * 按名称搜索模板
+     */
+    public Mono<ServerResponse> searchTemplates(ServerRequest request) {
+        log.info("searchTemplates");
+        String name = request.queryParam("name").get();
+
+        return tempRepository.findAllLikeName(name)
+                .collectList()
+                .map(templates -> templates.subList(0, Math.min(50, templates.size())))
+                .flatMap(templates -> ok().bodyValue(templates));
+    }
+
+    @Data
+    @NoArgsConstructor
+    private static class UpdateTempUnit {
+        private String name;
+        private String group;
+        private String info;
+        private String updateInfo;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    private static class ApplyToUpdateTempSeed {
+        private Template template;
+        private String config;
     }
 
     @Data

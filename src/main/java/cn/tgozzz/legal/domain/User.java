@@ -1,5 +1,6 @@
 package cn.tgozzz.legal.domain;
 
+import cn.tgozzz.legal.handler.TemplateHandler;
 import lombok.Data;
 import lombok.SneakyThrows;
 import org.springframework.data.annotation.Id;
@@ -7,6 +8,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.util.DigestUtils;
 
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.HashSet;
 
 @Document(collection = "user")
@@ -77,6 +79,25 @@ public class User {
      */
     public void updateMineTemp(String tid) {
         this.template.getMine().add(tid);
+    }
+
+    /**
+     * 追加更新我的模板
+     */
+    public void updateMineTemp(ArrayList<String> list) {
+        HashSet<String> mine = this.template.getMine();
+        for (String s : list)
+            mine.add(s);
+    }
+
+    /**
+     * 如果该模板属于该用户则连带删除
+     * 返回true 即 用户信息需要保存
+     */
+    public boolean deleteTemplate(Template template) {
+        if(template.getOwner().equals(this.uid))
+            return this.getTemplate().getMine().remove(template.getTid());
+        return false;
     }
 }
 
