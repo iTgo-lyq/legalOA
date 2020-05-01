@@ -42,7 +42,7 @@ public class TemplateGroup {
     public void addTemplate(ArrayList<String> temp, String info, User user) {
         this.templates.addAll(temp);
         this.count += temp.size();
-        this.setUpdateInfo(info);
+        this.setUpdateInfo("用户" + user.getName() + info);
     }
 
     /**

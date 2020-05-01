@@ -74,15 +74,13 @@ public class TemplateHandler {
                             .flatMap(t ->
                                     // 上传office服务器
                                     Office.upload(part, t.getTid())
-                                            .map(s -> s.contains("filename"))
-                                            // 上传成功，设置uri，否则设null
-                                            .doOnNext(aBoolean -> {
-                                                if (aBoolean)
-                                                    t.setUri("http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/" + t.getTid());
-                                                else
-                                                    t.setUri(null);
-                                            })
+                                            // 判断上传情况
+                                            .filter(s -> s.contains("filename"))
+                                            .doOnNext(s ->
+                                                    t.setUri("http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/" + t.getTid())
+                                            )
                                             .flatMap(aBoolean -> tempRepository.save(t))
+                                            .switchIfEmpty(Mono.error(new CommonException(501, "中奖了，文件上传失败")))
                             );
                 })
                 .collectList()
@@ -402,6 +400,6 @@ public class TemplateHandler {
     @NoArgsConstructor
     private static class AddTempUnit {
         private ArrayList<String> list;
-        private String info = "用户XX 新增模板 ";
+        private String info = "新增模板 ";
     }
 }
