@@ -311,8 +311,10 @@ public class TemplateHandler {
      */
     public Mono<ServerResponse> listGroup(ServerRequest request) {
         log.info("listGroup");
+
         return tempGroupRepository
                 .findAll()
+                .sort((group1, group2) -> (int) (group2.getCreateTime() - group1.getCreateTime()))
                 .doOnNext(templateGroup -> templateGroup.setTemplates(null))
                 .collectList()
                 .flatMap(templateGroups ->
