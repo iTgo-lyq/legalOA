@@ -3,6 +3,7 @@ package cn.tgozzz.legal.domain;
 import cn.tgozzz.legal.utils.GlobalConfig;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -62,24 +63,23 @@ public class Word {
     public void addLog(String msg) {
         this.logs.add(new ChangeLog(msg, this.getWid()));
     }
-}
 
-@Data
-@AllArgsConstructor
-class ChangeLog {
-    private String wid;
-    private long time;
-    private String message;
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    private static class ChangeLog {
+        private String wid;
+        private long time;
+        private String message;
 
-    ChangeLog() {}
+        ChangeLog(String msg, String wid) {
+            this.initTime();
+            this.setMessage(msg);
+            this.setWid(wid);
+        }
 
-    ChangeLog(String msg, String wid) {
-        this.initTime();
-        this.setMessage(msg);
-        this.setWid(wid);
-    }
-
-    private void initTime() {
-        this.time = new Date().getTime();
+        private void initTime() {
+            this.time = new Date().getTime();
+        }
     }
 }

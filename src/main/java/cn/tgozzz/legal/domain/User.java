@@ -2,6 +2,7 @@ package cn.tgozzz.legal.domain;
 
 import cn.tgozzz.legal.handler.TemplateHandler;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -86,8 +87,7 @@ public class User {
      */
     public void updateMineTemp(ArrayList<String> list) {
         HashSet<String> mine = this.template.getMine();
-        for (String s : list)
-            mine.add(s);
+        mine.addAll(list);
     }
 
     /**
@@ -99,11 +99,12 @@ public class User {
             return this.getTemplate().getMine().remove(template.getTid());
         return false;
     }
-}
 
-@Data
-class Temp {
-    private HashSet<String> mark = new HashSet<>();
-    private HashSet<String> mine = new HashSet<>();
-    private HashSet<String> use = new HashSet<>();
+    @Data
+    @NoArgsConstructor
+    private static class Temp {
+        private HashSet<String> mark = new HashSet<>();
+        private HashSet<String> mine = new HashSet<>();
+        private HashSet<String> use = new HashSet<>();
+    }
 }

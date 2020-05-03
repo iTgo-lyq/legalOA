@@ -259,7 +259,7 @@ public class TemplateHandler {
      */
     public Mono<ServerResponse> deleteTmp(ServerRequest request) {
         log.info("deleteTmp");
-        String tid = request.pathVariable("tgid");
+        String tid = request.pathVariable("tid");
         String tgid = request.pathVariable("tgid");
 
         return tempGroupRepository
