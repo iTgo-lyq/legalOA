@@ -274,14 +274,14 @@ public class TemplateHandler {
                                 // 如果该模板属于该用户，则会被实际删除
                                 .filter(user::deleteTemplate)
                                 .flatMap(tempRepository::delete)
-                                .map(aVoid -> user)
+                                .then(Mono.just(user))
                                 .flatMap(tokenUtils::saveUser)
                                 .map(u -> templateGroup)
                                 .switchIfEmpty(Mono.just(templateGroup))
                         )
                 )
                 .flatMap(tempGroupRepository::save)
-                .flatMap(aVoid -> ok().build());
+                .flatMap(templateGroup -> ok().contentType(APPLICATION_JSON).bodyValue(templateGroup));
     }
 
     /**
@@ -357,7 +357,7 @@ public class TemplateHandler {
                 .findById(tgid)
                 .switchIfEmpty(Mono.error(new CommonException(404, "tgid 错误， 找不到模板")))
                 .flatMap(tempGroupRepository::delete)
-                .flatMap(aVoid -> ok().bodyValue("删除成功"));
+                .then(ok().bodyValue("删除成功"));
     }
 
     /**

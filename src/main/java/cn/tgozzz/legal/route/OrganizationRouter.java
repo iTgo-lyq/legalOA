@@ -20,7 +20,7 @@ public class OrganizationRouter {
     @Bean
     RouterFunction<ServerResponse> deptRouter(DepartmentHandler handler) {
 
-        return route().path("/organization/departments/",
+        return route().path("/organization/departments",
                 builder -> builder
                         .GET("", handler::listDepts)
                         .POST("", handler::addDept)
@@ -40,6 +40,7 @@ public class OrganizationRouter {
                         .GET("", handler::listRoles)
                         .POST("", handler::addRole)
                         .PUT("/{rid}", handler::updateRole)
+                        .PATCH("/{rid}", handler::changeStatusOfRole)
                         .DELETE("/{rid}", handler::deleteRole)
                         .build())
                 .filter(authFilter::tokenFilter)

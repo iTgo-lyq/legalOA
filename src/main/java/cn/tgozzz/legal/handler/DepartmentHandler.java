@@ -75,6 +75,6 @@ public class DepartmentHandler {
         return repository.findById(did)
                 .switchIfEmpty(Mono.error(new CommonException(404, "did 无效")))
                 .flatMap(repository::delete)
-                .flatMap(aVoid -> ok().contentType(TEXT_PLAIN).bodyValue("删除成功"));
+                .then(ok().contentType(TEXT_PLAIN).bodyValue("删除成功"));
     }
 }

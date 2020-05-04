@@ -1,5 +1,6 @@
 package cn.tgozzz.legal.handler;
 
+import cn.tgozzz.legal.domain.Permission;
 import cn.tgozzz.legal.domain.Role;
 import cn.tgozzz.legal.exception.CommonException;
 import cn.tgozzz.legal.repository.RoleRepository;
@@ -75,7 +76,7 @@ public class RoleHandler {
         return repository.findById(rid)
                 .switchIfEmpty(Mono.error(new CommonException(404, "rid 无效")))
                 .flatMap(repository::delete)
-                .flatMap(aVoid -> ok().contentType(TEXT_PLAIN).bodyValue("删除成功"));
+                .then(ok().contentType(TEXT_PLAIN).bodyValue("删除成功"));
     }
 
     /**
@@ -84,6 +85,25 @@ public class RoleHandler {
     public Mono<ServerResponse> listPermissions(ServerRequest request) {
         log.info("listPermissions");
 
-        return ok().contentType(APPLICATION_JSON).bodyValue(new Role.permission());
+        return ok().contentType(APPLICATION_JSON).bodyValue(new Permission());
+    }
+
+    /**
+     * 切换role的启用状态
+     */
+    public Mono<ServerResponse> changeStatusOfRole(ServerRequest request) {
+        log.info("changeStatusOfRole");
+        String rid = request.pathVariable("rid");
+        int status;
+        try {
+            status = Integer.parseInt(request.queryParam("status").get());
+        } catch (Exception e) {
+            return Mono.error(new CommonException("status 无效"));
+        }
+
+        return repository.findById(rid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "rid 无效")))
+                .doOnNext(role -> role.setStatus(status))
+                .flatMap(repository::save).flatMap(role -> ok().bodyValue(role));
     }
 }

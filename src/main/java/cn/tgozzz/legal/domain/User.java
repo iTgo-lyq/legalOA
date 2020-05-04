@@ -1,6 +1,5 @@
 package cn.tgozzz.legal.domain;
 
-import cn.tgozzz.legal.handler.TemplateHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
@@ -106,5 +105,29 @@ public class User {
         private HashSet<String> mark = new HashSet<>();
         private HashSet<String> mine = new HashSet<>();
         private HashSet<String> use = new HashSet<>();
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class Organization {
+        private int status = 0;
+        private Permission permission = new Permission();
+        private ArrayList<UserRole> roles = new ArrayList<>();
+        private UserDepartment department = new UserDepartment();
+
+        @Data
+        @NoArgsConstructor
+        public static class UserRole {
+            private String rid = "";
+            private String name = "";
+        }
+
+        @Data
+        @NoArgsConstructor
+        public static class UserDepartment {
+            private String did = "";
+            private String name = "";
+            private boolean leader = false;
+        }
     }
 }
