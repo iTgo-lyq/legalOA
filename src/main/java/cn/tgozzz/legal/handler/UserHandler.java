@@ -235,7 +235,9 @@ public class UserHandler {
                         .findById(uid)
                         .switchIfEmpty(Mono.error(new CommonException(404, "用户id无效")))
                         .filter(user -> user.markTemplate(template.getTid()))
-                        .doOnNext(user -> templateRepository.save(template))
+                        .flatMap(user -> templateRepository
+                                .save(template)
+                                .map(template1 -> user))
                         .switchIfEmpty(Mono.error(new CommonException("重复收藏"))))
                 .flatMap(repository::save)
                 .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user.getTemplate()));

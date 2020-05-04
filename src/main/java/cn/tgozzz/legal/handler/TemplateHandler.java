@@ -301,6 +301,10 @@ public class TemplateHandler {
                     group.setOwner("system");
                     return group;
                 })
+                .flatMap(group -> tokenUtils.getUser(request)
+                        .doOnNext(user -> group.setOwner(user.getName()))
+                        .map(user -> group)
+                )
                 .flatMap(tempGroupRepository::save)
                 .flatMap(group -> ok().contentType(APPLICATION_JSON).bodyValue(group))
                 .switchIfEmpty(Mono.error(new CommonException(500, "存储失败")));
