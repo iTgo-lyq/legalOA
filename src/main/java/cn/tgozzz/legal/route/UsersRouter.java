@@ -19,7 +19,22 @@ public class UsersRouter {
     @Autowired
     private AuthFilter authFilter;
 
-    @Bean RouterFunction<ServerResponse> tempRouter(UserHandler handler) {
+    @Bean
+    RouterFunction<ServerResponse> statusRouter(UserHandler handler) {
+        return route()
+                .PATCH("/users/{uid}/organization/status", handler::changeStatus)
+                .build();
+    }
+
+    @Bean
+    RouterFunction<ServerResponse> pwRouter(UserHandler handler) {
+        return route()
+                .PUT("/users/{uid}/password", handler::resetPassword)
+                .build();
+    }
+
+    @Bean
+    RouterFunction<ServerResponse> tempRouter(UserHandler handler) {
         return nest(path("/users/{uid}/template/mark"),
                 route(DELETE("/{tid}"), handler::cancelMarkTemplate)
                         .andRoute(POST(""), handler::markTemplate));
@@ -47,6 +62,7 @@ public class UsersRouter {
                                    .GET("/{uid}", handler::getUser)
                                    .PATCH("/{uid}", handler::updateUser)
                                    .PUT("/{uid}", handler::coverUser)
+                                   .DELETE("/{uid}", handler::deleteUser)
                                    .build())
                            .POST("/", handler::addUserByCaptcha).build())
                    .build();

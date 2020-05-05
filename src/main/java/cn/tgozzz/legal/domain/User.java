@@ -9,11 +9,14 @@ import org.springframework.util.DigestUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 
 @Document(collection = "user")
 @Data
 public class User {
+
+    static String[] portraits_sample = new String[]{"http://qiniu.tgozzz.cn/slime_sample_03.jpg", "http://qiniu.tgozzz.cn/slime_sample_02.jpg", "http://qiniu.tgozzz.cn/slime_sample_01.jpg", "http://qiniu.tgozzz.cn/slime_sample_00.jpg"};
 
     @Id
     private String uid;
@@ -26,9 +29,11 @@ public class User {
     private String email = "";
     private String name = "";
     private String password = "";
-    private String portrait = "";
+    private String portrait = portraits_sample[(int)(Math.random()*4)];
     private String token = "";
+    private long createTime = new Date().getTime();
     private Temp template = new Temp();
+    private Organization organization = new Organization();
 
     /**
      * MD5 加密密码
@@ -40,6 +45,13 @@ public class User {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 直接设置密码
+     */
+    public void embedPassword(String pw) {
+        this.password = pw;
     }
 
     /**
@@ -112,15 +124,8 @@ public class User {
     public static class Organization {
         private int status = 0;
         private Permission permission = new Permission();
-        private ArrayList<UserRole> roles = new ArrayList<>();
+        private ArrayList<String> roles = new ArrayList<>();
         private UserDepartment department = new UserDepartment();
-
-        @Data
-        @NoArgsConstructor
-        public static class UserRole {
-            private String rid = "";
-            private String name = "";
-        }
 
         @Data
         @NoArgsConstructor

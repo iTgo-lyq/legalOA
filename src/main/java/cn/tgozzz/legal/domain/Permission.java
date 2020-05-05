@@ -29,8 +29,8 @@ public class Permission {
      * P1 将被修改并返回
      */
     public static Permission merge(Permission p1, Permission p2) {
-        HashMap<String, PermUnit> p1kids = p1.getChildren();
-        HashMap<String, PermUnit> p2kids = p1.getChildren();
+        HashMap<String, PermUnit> p1kids = p1.getChildren() == null ? new HashMap<>() : p1.getChildren();
+        HashMap<String, PermUnit> p2kids = p2.getChildren() == null ? new HashMap<>() : p2.getChildren();
         p1.setOn(p1.getOn() | p2.getOn());
         p1kids.forEach((s, unit) ->
                 p1kids.put(s, PermUnit.merge(unit, p2kids.get(s)))
@@ -49,11 +49,11 @@ public class Permission {
         private HashMap<String, PermUnit> children;
 
         private static PermUnit merge(PermUnit u1, PermUnit u2) {
-            HashMap<String, PermUnit> u1kids = u1.getChildren();
-            HashMap<String, PermUnit> u2kids = u2.getChildren();
+            HashMap<String, PermUnit> u1kids = u1.getChildren() == null ? new HashMap<>() : u1.getChildren();
+            HashMap<String, PermUnit> u2kids = u2.getChildren() == null ? new HashMap<>() : u2.getChildren();
             u1.setOn(u1.getOn() | u2.getOn());
             u1kids.forEach((s, unit) ->
-                u1kids.put(s, PermUnit.merge(unit, u2kids.get(s)))
+                    u1kids.put(s, PermUnit.merge(unit, u2kids.get(s)))
             );
             return u1;
         }

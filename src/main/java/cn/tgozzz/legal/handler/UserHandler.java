@@ -18,9 +18,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Date;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -68,12 +70,20 @@ public class UserHandler {
 
     /**
      * 删除所有用户
+     * 提供用户数组则按数组删除
      */
     public Mono<ServerResponse> deletePeople(ServerRequest request) {
         log.info("deletePeople");
-        return repository
-                .deleteAll()
-                .flatMap(res -> ok().contentType(APPLICATION_JSON).bodyValue(res));
+
+        return request.bodyToMono(DeletePeopleUnit.class)
+                .onErrorResume(throwable -> Mono.empty())
+                .map(DeletePeopleUnit::getList)
+                .flux()
+                .flatMap(strings -> Flux.fromStream(strings.stream()))
+                .flatMap(s -> repository.deleteById(s))
+                .switchIfEmpty(repository.deleteAll())
+                .collectList()
+                .then(ok().bodyValue("删除完毕"));
     }
 
     /**
@@ -130,7 +140,7 @@ public class UserHandler {
     }
 
     /**
-     * 完全覆盖用户信息，除了token
+     * 完全覆盖用户信息，除了token、密码
      */
     public Mono<ServerResponse> coverUser(ServerRequest request) {
         log.info("coverUser");
@@ -139,6 +149,7 @@ public class UserHandler {
                 .flatMap(user -> repository
                         .findById(user.getUid())
                         .filter(oldUser -> oldUser.getToken().equals(user.getToken()))
+                        .doOnNext(oldUser -> user.embedPassword(oldUser.getPassword()))
                         .flatMap(oldUser -> repository.save(user))
                         .switchIfEmpty(Mono.error(new CommonException("token 与 uid 不符")))
                 )
@@ -155,9 +166,15 @@ public class UserHandler {
         // 获取redis操作器
         ReactiveValueOperations<String, Token> operations = reactiveRedisTemplate.opsForValue();
 
+        Mono<User> defaultU = tokenStr.equals("token") ? repository
+                .findOneByName("system")
+                .switchIfEmpty(Mono.error(new CommonException(403, "管理员尚未建立")))
+                : Mono.error(new CommonException(403, "中奖了，token 执行中 过期, 执行到哪一步俺也不知道"));
+
         return operations
                 .get(tokenStr)
                 .flatMap(token -> repository.findById(token.getUid()))
+                .switchIfEmpty(defaultU)
                 .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user));
     }
 
@@ -263,6 +280,54 @@ public class UserHandler {
                 .switchIfEmpty(ok().bodyValue("模板id无效，收藏已取消"));
     }
 
+    /**
+     * 切换用户状态
+     */
+    public Mono<ServerResponse> changeStatus(ServerRequest request) {
+        log.info("changeStatus");
+        String uid = request.pathVariable("uid");
+        int status;
+        try {
+            status = Integer.parseInt(request.queryParam("status").get());
+        } catch (Exception e) {
+            return Mono.error(new CommonException("参数错误"));
+        }
+
+        return repository.findById(uid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "uid 无效")))
+                .doOnNext(user -> user.getOrganization().setStatus(status))
+                .flatMap(repository::save)
+                .flatMap(user -> ok().bodyValue("ok"));
+    }
+
+    /**
+     * 重置密码
+     */
+    public Mono<ServerResponse> resetPassword(ServerRequest request) {
+        log.info("resetPassword");
+        String uid = request.pathVariable("uid");
+
+        return request.bodyToMono(ResetPasswordUnit.class)
+                .flatMap(unit -> repository.findById(uid)
+                        .switchIfEmpty(Mono.error(new CommonException(404, "uid 无效")))
+                        .doOnNext(user -> user.setPassword(unit.getPassword()))
+                        .flatMap(repository::save))
+                .flatMap(user -> ok().bodyValue("修改成功"));
+    }
+
+    /**
+     * 删除用户
+     */
+    public Mono<ServerResponse> deleteUser(ServerRequest request) {
+        log.info("deleteUser");
+        String uid = request.pathVariable("uid");
+
+        return repository.findById(uid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "uid 无效")))
+                .flatMap(repository::delete)
+                .then(ok().bodyValue("删除成功"));
+    }
+
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
@@ -290,6 +355,18 @@ public class UserHandler {
     @NoArgsConstructor
     static class MarkTemplateUnit {
         private String tid;
+    }
+
+    @Data
+    @NoArgsConstructor
+    static class ResetPasswordUnit {
+        private String password;
+    }
+
+    @Data
+    @NoArgsConstructor
+    static class DeletePeopleUnit {
+        ArrayList<String> list;
     }
 
     /**
