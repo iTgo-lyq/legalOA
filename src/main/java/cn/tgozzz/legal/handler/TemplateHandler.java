@@ -96,6 +96,13 @@ public class TemplateHandler {
         String tgid = request.pathVariable("tgid");
 
         return request.bodyToMono(AddTempUnit.class)
+                .flatMap(unit -> Mono.just(unit.getList())
+                        .flux()
+                        .flatMap(strings -> Flux.fromStream(strings.stream()))
+                        .flatMap(s -> tempRepository.findByIdAndUpdateGroup(s, tgid))
+                        .collectList()
+                        .map(temps -> unit)
+                )
                 //获取更新信息
                 .flatMap(unit -> tokenUtils.getUser(request)
                         // 我的模板添加
