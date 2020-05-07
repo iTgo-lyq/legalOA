@@ -75,7 +75,7 @@ public class TemplateGroup {
     public void extendTemplate(Template template, User user) {
         this.templates.add(template.getTid());
         this.count++;
-        this.setUpdateInfo("用户 " + user.getName() + " 更新了模板 " + template.getName());
+        this.setUpdateInfo("用户 " + user.getName() + " 编辑创建了模板 " + template.getName());
     }
 
     /**
