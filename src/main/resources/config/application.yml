@@ -6,14 +6,14 @@ spring:
     host: localhost
     port: 6379
     database: 0
-#    password: lyq1999==
+    password: lyq1999==
   data:
     mongodb:
       host: localhost
       port: 27017
       database: legal-oa
-#      username: admin
-#      password: lyq1999==
+      username: admin
+      password: lyq1999==
     redis:
       repositories:
         enabled: false
