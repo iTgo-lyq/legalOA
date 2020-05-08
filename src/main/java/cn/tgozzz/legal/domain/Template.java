@@ -56,6 +56,7 @@ public class Template {
      * 通过覆盖进行更新
      */
     public void updateByCover(String oldTid, User user) {
+        this.uri = "http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/" + this.tid;
         this.baseT.add(0, oldTid);
         this.modifier = user.getUid();
         this.setUpdateInfo("用户" + user.getName() + "进行了覆盖更新");
@@ -65,6 +66,7 @@ public class Template {
      * 通过新增版本进行更新
      */
     public void updateByExtend(String oldTid, User user, Template template) {
+        this.uri = "http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/" + this.tid;
         this.baseT.clear();
         this.baseT.add(oldTid);
         this.owner = user.getUid();
