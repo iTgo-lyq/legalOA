@@ -20,6 +20,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 import static org.springframework.http.MediaType.*;
 import static org.springframework.web.reactive.function.server.ServerResponse.*;
@@ -96,24 +97,25 @@ public class TemplateHandler {
         String tgid = request.pathVariable("tgid");
 
         return request.bodyToMono(AddTempUnit.class)
+                // 更新模板信息
                 .flatMap(unit -> Mono.just(unit.getList())
                         .flux()
                         .flatMap(strings -> Flux.fromStream(strings.stream()))
-                        .flatMap(s -> tempRepository.findByIdAndUpdateGroup(s, tgid))
+                        .flatMap(s -> tempRepository.findByIdAndUpdate(s, tgid))
                         .collectList()
                         .map(temps -> unit)
                 )
                 //获取更新信息
                 .flatMap(unit -> tokenUtils.getUser(request)
                         // 我的模板添加
-                        .doOnNext(user -> user.updateMineTemp(unit.getList()))
+                        .doOnNext(user -> user.updateMineTemp(AddTempUnit.getTidList(unit)))
                         .flatMap(user -> tempGroupRepository
                                 .findById(tgid)
                                 .filter(templateGroup -> unit.getList().size() != 0)
                                 .switchIfEmpty(Mono.error(new CommonException("空模板")))
                                 // 模板组添加信息
                                 .doOnNext(templateGroup ->
-                                        templateGroup.addTemplate(unit.getList(), unit.getInfo(), user))
+                                        templateGroup.addTemplate(AddTempUnit.getTidList(unit), unit.getInfo(), user))
                                 .flatMap(tempGroupRepository::save)
                                 .flatMap(group -> tokenUtils.saveUser(user)
                                         .map(u -> group))
@@ -411,8 +413,22 @@ public class TemplateHandler {
 
     @Data
     @NoArgsConstructor
-    private static class AddTempUnit {
-        private ArrayList<String> list;
+    public static class AddTempUnit {
+        private ArrayList<subUnit> list;
         private String info = "新增模板 ";
+
+        private static ArrayList<String> getTidList(AddTempUnit u) {
+            ArrayList<String> res = new ArrayList<>();
+            for (subUnit subU : u.getList())
+                res.add(subU.getTid());
+            return res;
+        }
+
+        @Data
+        @NoArgsConstructor
+        public static class subUnit {
+            private String tid;
+            private String info;
+        }
     }
 }

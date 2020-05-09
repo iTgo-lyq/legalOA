@@ -1,6 +1,7 @@
 package cn.tgozzz.legal.repository;
 
 import cn.tgozzz.legal.domain.Template;
+import cn.tgozzz.legal.handler.TemplateHandler;
 import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
@@ -12,9 +13,10 @@ public interface TemplateRepository extends ReactiveMongoRepository<Template, St
     @Query(value = "{ name: { $regex: ?0}}")
     Flux<Template> findAllLikeName(String name);
 
-    default Mono<Template> findByIdAndUpdateGroup(String tid, String group) {
-        return findById(tid)
-                .doOnNext(template -> template.setGroup(group))
+    default Mono<Template> findByIdAndUpdate(TemplateHandler.AddTempUnit.subUnit s, String tgid) {
+        return findById(s.getTid())
+                .doOnNext(template -> template.setGroup(tgid))
+                .doOnNext(template -> template.setInfo(s.getInfo()))
                 .flatMap(this::save);
     }
 }
