@@ -395,8 +395,8 @@ public class TemplateHandler {
     public Mono<ServerResponse> listTempsById(ServerRequest request) {
         log.info("listTempsById");
 
-        return request.bodyToMono(ArrayList.class)
-                .map(arrayList -> (ArrayList<String>)arrayList)
+        return request.bodyToMono(ListTempsByIdUnit.class)
+                .map(ListTempsByIdUnit::getList)
                 .flux()
                 .flatMap(strings -> Flux.fromStream(strings.stream()))
                 .flatMap(tempRepository::findById)
@@ -448,5 +448,11 @@ public class TemplateHandler {
             private String tid;
             private String info;
         }
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class ListTempsByIdUnit {
+        private ArrayList<String> list;
     }
 }
