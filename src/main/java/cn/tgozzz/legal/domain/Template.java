@@ -58,7 +58,7 @@ public class Template {
     public void updateByCover(String oldTid, User user) {
         this.uri = "http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/" + this.tid;
         this.baseT.add(0, oldTid);
-        this.modifier = user.getUid();
+        this.modifier = user.getName();
         this.setUpdateInfo("用户" + user.getName() + "进行了覆盖更新");
     }
 
@@ -69,7 +69,7 @@ public class Template {
         this.uri = "http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/" + this.tid;
         this.baseT.clear();
         this.baseT.add(oldTid);
-        this.owner = user.getUid();
+        this.owner = user.getName();
         this.modifier = "";
         this.createTime = new Date().getTime();
         this.apply = 0;

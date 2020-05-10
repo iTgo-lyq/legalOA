@@ -59,32 +59,35 @@ public class TemplateHandler {
         log.info("uploadTemp");
         String tgid = request.pathVariable("tgid");
 
-        return request.multipartData()
-                // 获取文件部分信息
-                .map(map -> map.get("file"))
-                .flux()
-                // 多文件转流
-                .flatMap(parts -> Flux.fromStream(parts.stream()))
-                .flatMap(part -> {
-                    // 创建模板记录
-                    Template template = new Template();
-                    template.setName(((FilePart) part).filename());
-                    template.setGroup(tgid);
-                    return tempRepository.save(template)
-                            // 拿到模板记录实体
-                            .flatMap(t ->
-                                    // 上传office服务器
-                                    Office.upload(part, t.getTid())
-                                            // 判断上传情况
-                                            .filter(s -> s.contains("filename"))
-                                            .doOnNext(s ->
-                                                    t.setUri("http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/" + t.getTid())
-                                            )
-                                            .flatMap(aBoolean -> tempRepository.save(t))
-                                            .switchIfEmpty(Mono.error(new CommonException(501, "中奖了，文件上传失败")))
-                            );
-                })
-                .collectList()
+        return tokenUtils.getUser(request)
+                .flatMap(user ->
+                        request.multipartData()
+                                // 获取文件部分信息
+                                .map(map -> map.get("file"))
+                                .flux()
+                                // 多文件转流
+                                .flatMap(parts -> Flux.fromStream(parts.stream()))
+                                .flatMap(part -> {
+                                    // 创建模板记录
+                                    Template template = new Template();
+                                    template.setName(((FilePart) part).filename());
+                                    template.setGroup(tgid);
+                                    template.setOwner(user.getName());
+                                    return tempRepository.save(template)
+                                            // 拿到模板记录实体
+                                            .flatMap(t ->
+                                                    // 上传office服务器
+                                                    Office.upload(part, t.getTid())
+                                                            // 判断上传情况
+                                                            .filter(s -> s.contains("filename"))
+                                                            .doOnNext(s ->
+                                                                    t.setUri("http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/" + t.getTid())
+                                                            )
+                                                            .flatMap(aBoolean -> tempRepository.save(t))
+                                                            .switchIfEmpty(Mono.error(new CommonException(501, "中奖了，文件上传失败")))
+                                            );
+                                })
+                                .collectList())
                 .flatMap(templates -> ok().bodyValue(templates));
     }
 
