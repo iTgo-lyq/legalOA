@@ -25,12 +25,12 @@ public class TemplatesRouter {
     private TemplateFilter templateFilter;
 
     @Bean
-    RouterFunction<ServerResponse> templateItemRoute(TemplateHandler handler) {
-        return nest(path("/templates/{tgid}/{tid}"), route()
-                .GET("", handler::getOneTemp)
-                .PATCH("", handler::updateTemp)
-                .PUT("", handler::applyToUpdateTemp)
-                .DELETE("", handler::deleteTmp)
+    RouterFunction<ServerResponse> templateRoute(TemplateHandler handler) {
+        return nest(path("/templates"), route()
+                .GET("", queryParam("name", Objects::nonNull), handler::searchTemplates)
+                .GET("", handler::listGroup)
+                .POST("/list", handler::listTempsById)
+                .POST("", handler::addGroup)
                 .build())
                 .filter(authFilter::tokenFilter);
     }
@@ -39,9 +39,8 @@ public class TemplatesRouter {
     RouterFunction<ServerResponse> templateGroupRoute(TemplateHandler handler) {
         return nest(path("/templates/{tgid}"), route()
                 .GET("", handler::listTemp)
-                .POST("/list", handler::listTempsById)
-                .POST("", contentType(MULTIPART_FORM_DATA) ,handler::uploadTemp)
-                .POST("", contentType(APPLICATION_JSON) ,handler::addTemp)
+                .POST("", contentType(MULTIPART_FORM_DATA), handler::uploadTemp)
+                .POST("", contentType(APPLICATION_JSON), handler::addTemp)
                 .PUT("", handler::updateGroup)
                 .DELETE("", handler::deleteGroup)
                 .build())
@@ -49,11 +48,12 @@ public class TemplatesRouter {
     }
 
     @Bean
-    RouterFunction<ServerResponse> templateRoute(TemplateHandler handler) {
-        return nest(path("/templates"), route()
-                .GET("",queryParam("name", Objects::nonNull), handler::searchTemplates)
-                .GET("", handler::listGroup)
-                .POST("", handler::addGroup)
+    RouterFunction<ServerResponse> templateItemRoute(TemplateHandler handler) {
+        return nest(path("/templates/{tgid}/{tid}"), route()
+                .GET("", handler::getOneTemp)
+                .PATCH("", handler::updateTemp)
+                .PUT("", handler::applyToUpdateTemp)
+                .DELETE("", handler::deleteTmp)
                 .build())
                 .filter(authFilter::tokenFilter);
     }
