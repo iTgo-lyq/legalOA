@@ -39,6 +39,7 @@ public class TemplatesRouter {
     RouterFunction<ServerResponse> templateGroupRoute(TemplateHandler handler) {
         return nest(path("/templates/{tgid}"), route()
                 .GET("", handler::listTemp)
+                .POST("/list", handler::listTempsById)
                 .POST("", contentType(MULTIPART_FORM_DATA) ,handler::uploadTemp)
                 .POST("", contentType(APPLICATION_JSON) ,handler::addTemp)
                 .PUT("", handler::updateGroup)

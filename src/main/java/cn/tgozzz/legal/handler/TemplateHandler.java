@@ -389,6 +389,21 @@ public class TemplateHandler {
                 .flatMap(templates -> ok().bodyValue(templates));
     }
 
+    /**
+     * 根据id获取模板数组
+     */
+    public Mono<ServerResponse> listTempsById(ServerRequest request) {
+        log.info("listTempsById");
+
+        return request.bodyToMono(ArrayList.class)
+                .map(arrayList -> (ArrayList<String>)arrayList)
+                .flux()
+                .flatMap(strings -> Flux.fromStream(strings.stream()))
+                .flatMap(tempRepository::findById)
+                .collectList()
+                .flatMap(templates -> ok().contentType(APPLICATION_JSON).bodyValue(templates));
+    }
+
     @Data
     @NoArgsConstructor
     private static class UpdateTempUnit {
