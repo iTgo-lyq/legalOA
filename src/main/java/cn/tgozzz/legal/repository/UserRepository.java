@@ -1,10 +1,13 @@
 package cn.tgozzz.legal.repository;
 
 import cn.tgozzz.legal.domain.User;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
-import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.ArrayList;
 
 @Repository
 public interface UserRepository extends ReactiveMongoRepository<User, String> {
@@ -19,6 +22,15 @@ public interface UserRepository extends ReactiveMongoRepository<User, String> {
      */
     Mono<User> findAndUpdateByToken(String oldT, String newT);
 
+    /**
+     * 更具名字查询用户
+     */
     Mono<User> findOneByName(String system);
+
+    /**
+     * 查询所有在部门列表中的用户
+     */
+    @Query(value = "{\"organization.department.did\":{$in:?0}}")
+    Flux<User> findAllInProjects(ArrayList<String> depts);
 }
 

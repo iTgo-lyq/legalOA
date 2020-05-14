@@ -1,5 +1,6 @@
 package cn.tgozzz.legal.domain;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
@@ -34,6 +35,8 @@ public class User {
     private long createTime = new Date().getTime();
     private Temp template = new Temp();
     private Organization organization = new Organization();
+    private ArrayList<ProjectUnit> project = new ArrayList<>();
+    private ArrayList<String> notice = new ArrayList<>();
 
     /**
      * MD5 加密密码
@@ -134,5 +137,14 @@ public class User {
             private String name = "";
             private boolean leader = false;
         }
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ProjectUnit {
+        private String pid = "";
+        private String role = "";
+        private Project.BaseInfo _baseInfo = new Project.BaseInfo();
     }
 }

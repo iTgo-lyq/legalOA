@@ -10,6 +10,8 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
+
 import static org.springframework.http.MediaType.*;
 import static org.springframework.web.reactive.function.server.ServerResponse.*;
 
@@ -46,6 +48,11 @@ public class DepartmentHandler {
         return request.bodyToMono(Department.class)
                 .doOnNext(department -> department.getUpdateInfo().add("创建部门"))
                 .flatMap(repository::save)
+                // 上级部门添加
+                .flatMap(department -> repository.findById(department.getSuperior())
+                        .doOnNext(dept -> dept.getSubordinates().add(department.getDid()))
+                        .flatMap(repository::save)
+                        .thenReturn(department))
                 .flatMap(department -> ok().contentType(APPLICATION_JSON).bodyValue(department));
     }
 
@@ -74,6 +81,11 @@ public class DepartmentHandler {
 
         return repository.findById(did)
                 .switchIfEmpty(Mono.error(new CommonException(404, "did 无效")))
+                // 上级部门删除
+                .flatMap(department -> repository.findById(department.getSuperior())
+                        .doOnNext(dept -> dept.getSubordinates().remove(department.getDid()))
+                        .flatMap(repository::save)
+                        .thenReturn(department))
                 .flatMap(repository::delete)
                 .then(ok().contentType(TEXT_PLAIN).bodyValue("删除成功"));
     }

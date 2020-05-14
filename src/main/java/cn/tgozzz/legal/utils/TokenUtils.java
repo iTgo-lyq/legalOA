@@ -45,11 +45,26 @@ public class TokenUtils {
         ReactiveValueOperations<String, Token> operations = reactiveRedisTemplate.opsForValue();
 
         Mono<User> defaultU = tokenStr.equals("token") ? repository
-                        .findOneByName("system")
-                        .switchIfEmpty(Mono.error(new CommonException(403, "管理员尚未建立")))
+                .findOneByName("system")
+                .switchIfEmpty(Mono.error(new CommonException(403, "管理员尚未建立")))
                 : Mono.error(new CommonException(403, "中奖了，token 执行中 过期, 执行到哪一步俺也不知道"));
 
         return operations.get(tokenStr)
+                .map(Token::getUid)
+                .flatMap(repository::findById)
+                .switchIfEmpty(defaultU);
+    }
+
+    /**
+     * 根据token获取用户实体对象
+     */
+    public Mono<User> getUser(String token) {
+        ReactiveValueOperations<String, Token> operations = reactiveRedisTemplate.opsForValue();
+
+        Mono<User> defaultU = token.equals("token") ? repository
+                .findOneByName("system") : Mono.empty();
+
+        return operations.get(token)
                 .map(Token::getUid)
                 .flatMap(repository::findById)
                 .switchIfEmpty(defaultU);
