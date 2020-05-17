@@ -46,6 +46,13 @@ public class Template {
     }
 
     /**
+     * 使用标记+1
+     */
+    public void addApply() {
+        this.apply++;
+    }
+
+    /**
      * 收藏标记-1
      */
     public void reduceStar() {

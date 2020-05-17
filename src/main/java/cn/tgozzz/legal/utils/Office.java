@@ -36,4 +36,16 @@ public class Office {
                 .retrieve()
                 .bodyToMono(String.class);
     }
+
+    public static Mono<String> applyToEdit(String tid, String fileName, String mode, String uid, String userName) {
+        return WebClient.create("http://legal.tgozzz.cn/office/applyToEdit?" +
+                "tid=" + tid +
+                "&mode=" + mode +
+                "&fileName=" + fileName +
+                "&userid=" + uid +
+                "&name=" + userName)
+                .get()
+                .retrieve()
+                .bodyToMono(String.class);
+    }
 }

@@ -1,9 +1,12 @@
 package cn.tgozzz.legal.domain;
 
+import cn.tgozzz.legal.exception.CommonException;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.web.reactive.function.server.ServerResponse;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -21,6 +24,48 @@ public class Project {
     private ArrayList<HistoryUnit> history = new ArrayList<>(); //历史追踪
     private ArrayList<AuditorUnit> auditor = new ArrayList<>(); //审核部门信息列表
     private ArrayList<ContractUnit> contracts = new ArrayList<>(); // 合同列表
+
+    public ContractUnit getLastContract(String cid) {
+        for (ContractUnit unit : this.getContracts()) {
+            if(unit.getCid().equals(cid)) {
+                return unit;
+            }
+        }
+        return null;
+    }
+
+    public boolean coverContract(String oldCid, String newCid) {
+        for (ContractUnit unit : this.getContracts()) {
+            if(unit.getCid().equals(oldCid)) {
+                unit.setCid(newCid);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 构造下一步的参数
+     */
+    public UpdateInfoResult getNextUpdateInfo(String cid, int status, String handler) {
+        boolean isCompleted = false;
+        int s = Contract.TRASH_STATUS;
+        String h = "";
+        String historyInfo = "";
+
+
+
+        return new UpdateInfoResult(isCompleted, s, h, historyInfo);
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class UpdateInfoResult {
+        private boolean isCompleted;
+        private int status;
+        private String handler;
+        private String historyInfo;
+    }
 
     @Data
     @NoArgsConstructor
@@ -84,6 +129,7 @@ public class Project {
 
     @Data
     @NoArgsConstructor
+    @AllArgsConstructor
     public static class ContractUnit {
         private String cid = "";
         private Contract.BaseInfo baseInfo = new Contract.BaseInfo();

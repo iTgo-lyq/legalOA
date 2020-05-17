@@ -1,8 +1,523 @@
 package cn.tgozzz.legal.handler;
 
-import org.springframework.context.annotation.Configuration;
+import cn.tgozzz.legal.domain.Contract;
+import cn.tgozzz.legal.domain.Project;
+import cn.tgozzz.legal.domain.Template;
+import cn.tgozzz.legal.domain.User;
+import cn.tgozzz.legal.exception.CommonException;
+import cn.tgozzz.legal.repository.ContractRepository;
+import cn.tgozzz.legal.repository.ProjectRepository;
+import cn.tgozzz.legal.repository.TemplateRepository;
+import cn.tgozzz.legal.utils.Office;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-@Configuration
+import java.util.Objects;
+
+import static org.springframework.http.MediaType.*;
+import static org.springframework.web.reactive.function.server.ServerResponse.*;
+
+@Component
+@Log4j2
 public class ContractHandler {
 
+    private final ContractRepository contractRepository;
+
+    private final ProjectRepository projectRepository;
+
+    private final TemplateRepository templateRepository;
+
+    public ContractHandler(ContractRepository contractRepository, ProjectRepository projectRepository, TemplateRepository templateRepository) {
+        this.contractRepository = contractRepository;
+        this.projectRepository = projectRepository;
+        this.templateRepository = templateRepository;
+    }
+
+    /**
+     * 列出项目下所有合同
+     */
+    public Mono<ServerResponse> listContract(ServerRequest request) {
+        log.info("listContract");
+        String pid = request.pathVariable("pid");
+
+        return projectRepository.findById(pid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "pid 无效")))
+                .map(Project::getContracts)
+                .flux()
+                .flatMap(list -> Flux.fromStream(list.stream()))
+                .flatMap(contractUnit -> contractRepository.findById(contractUnit.getCid()))
+                .collectList()
+                .flatMap(contracts -> ok().contentType(APPLICATION_JSON).bodyValue(contracts));
+    }
+
+    /**
+     * 上传合同
+     * 仅仅上传
+     * 设置uri
+     * 设置创建者信息
+     * 设置默认基本信息
+     * 添加一条历史记录
+     */
+    public Mono<ServerResponse> uploadContract(ServerRequest request) {
+        log.info("uploadContract");
+        User user = (User) request.attribute("user_info").get();
+        String pid = request.pathVariable("pid");
+
+        return request.multipartData()
+                // 获取文件部分信息
+                .map(map -> map.get("file").get(0))
+                .flatMap(part -> {
+                    Contract emptyContract = new Contract();
+
+                    // 设置默认基本信息
+                    Contract.BaseInfo baseInfo = new Contract.BaseInfo();
+                    String fileName = ((FilePart) part).filename();
+                    int pointIndex = fileName.lastIndexOf(".");
+                    baseInfo.setName(fileName.substring(0, pointIndex));
+                    baseInfo.setType(fileName.substring(pointIndex + 1));
+                    baseInfo.setProject(pid);
+
+                    //设置创建者信息
+                    emptyContract.setCreateInfo(user);
+                    emptyContract.setBaseInfo(baseInfo);
+
+                    return contractRepository.save(emptyContract)
+                            // 拿到记录实体
+                            .flatMap(contract -> Office
+                                    // 上传office服务器
+                                    .upload(part, contract.getCid())
+                                    // 判断上传情况
+                                    .filter(s -> s.contains("filename"))
+                                    .switchIfEmpty(Mono.error(new CommonException(501, "中奖了，文件上传失败")))
+                                    .thenReturn(contract)
+                            );
+                })
+                .doOnNext(contract -> {
+                    // 设置uri
+                    contract.setUri(Contract.BASE_URI + contract.getCid());
+                    // 添加历史追踪
+                    contract.getHistories().add(new Contract.History(contract.getCid(), Contract.History.SYSTEM_TYPE,
+                            "上传合同文件")
+                            .setModifier(user));
+                })
+                // 保存信息
+                .flatMap(contractRepository::save)
+                .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
+    }
+
+    /**
+     * copy一份模板
+     * 模板使用数量+1
+     * 从模板库创建合同
+     * 仅仅创建
+     * 设置创建者信息
+     * 继承模板相关信息
+     * 添加一条历史记录
+     */
+    public Mono<ServerResponse> createContract(ServerRequest request) {
+        log.info("createContract");
+        User user = (User) request.attribute("user_info").get();
+        String pid = request.pathVariable("pid");
+        String tid = request.queryParam("template").orElse("");
+
+        if (tid.equals(""))
+            return Mono.error(new CommonException(400, "请提供模板id"));
+
+        return templateRepository.findById(tid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "模板id无效")))
+                .doOnNext(Template::addApply)
+                .flatMap(templateRepository::save)
+                .map(template -> {
+                    Contract contract = new Contract();
+                    //基本信息
+                    contract.getBaseInfo().setName(template.getName());
+                    contract.getBaseInfo().setType(template.getType());
+                    contract.getBaseInfo().setProject(pid);
+                    //创建者信息
+                    contract.setCreateInfo(user);
+                    return contract;
+                })
+                // 创建合同
+                .flatMap(contractRepository::save)
+                .flatMap(contract -> Office
+                        // office服务器copy操作
+                        .copyTemplate(tid, contract.getCid())
+                        // 虽然会主动抛出异常,还是过滤哈吧
+                        .filter(Boolean::booleanValue)
+                        .thenReturn(contract))
+                // 添加历史记录
+                .doOnNext(contract -> contract.getHistories().add(new Contract.History(contract.getCid(), Contract.History.SYSTEM_TYPE,
+                        "从模板 " + contract.getBaseInfo().getName() + " 创建合同")
+                        .setModifier(user)))
+                // 设置uri
+                .doOnNext(contract -> contract.setUri(Contract.BASE_URI + contract.getCid()))
+                // 更新
+                .flatMap(contractRepository::save)
+                .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
+    }
+
+    /**
+     * 确认添加合同到项目
+     * 保存基本信息
+     * 项目添加一条历史记录
+     * 合同添加一条历史记录
+     * 正式开始编辑
+     * 设置handler
+     * 设置status
+     */
+    public Mono<ServerResponse> confirmAddContract(ServerRequest request) {
+        log.info("confirmAddContract");
+        User user = (User) request.attribute("user_info").get();
+        String pid = request.pathVariable("pid");
+        String cid = request.queryParam("contract").orElse("");
+
+        if (cid.equals(""))
+            return Mono.error(new CommonException(400, "确定提供合同id"));
+
+        return checkCidAndPid(cid, pid)
+                .then(request.bodyToMono(Contract.BaseInfo.class))
+                // 添加到项目
+                .flatMap(baseInfo -> projectRepository
+                        .findById(pid)
+                        // 设置记录
+                        .doOnNext(project -> project.getHistory().add(new Project.HistoryUnit(user.getName() + "新增了合同" + baseInfo.getName())))
+                        // 添加基本信息
+                        .doOnNext(project -> project.getContracts().add(new Project.ContractUnit(cid, baseInfo)))
+                        .flatMap(projectRepository::save))
+                // 更新合同信息
+                .flatMap(project -> contractRepository
+                        .findById(cid)
+                        // 同步基本信息
+                        .doOnNext(contract -> contract.setBaseInfo(project.getLastContract(cid).getBaseInfo()))
+                        // 添加历史记录
+                        .doOnNext(contract -> contract
+                                .getHistories()
+                                .add(new Contract.History(contract.getCid(), Contract.History.SYSTEM_TYPE,
+                                        "添加合同到项目")
+                                        .setModifier(user)))
+                        // 设置status
+                        .doOnNext(contract -> contract.setStatus(Contract.EDIT_STATUS))
+                        // 设置handler
+                        .doOnNext(contract -> contract.setHandler(project.getDrafter().getDid()))
+                        .flatMap(contractRepository::save))
+                .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
+    }
+
+    /**
+     * 回退版本
+     * 删除最新版本
+     * 项目添加一条历史记录
+     * 合同添加一条历史记录
+     */
+    public Mono<ServerResponse> rollbackContract(ServerRequest request) {
+        log.info("rollbackContract");
+        User user = (User) request.attribute("user_info").get();
+        String pid = request.pathVariable("pid");
+        String oldCid = request.queryParam("rollback2").orElse("");
+        String lastCid = request.queryParam("lastCid").orElse("");
+
+        if (oldCid.equals("") | lastCid.equals(""))
+            return Mono.error(new CommonException(400, "请确定提供合同id"));
+
+        return checkCidAndPid(oldCid, pid)
+                .then(projectRepository.findById(pid))
+                .flatMap(project -> contractRepository
+                        .findById(oldCid)
+                        .flatMap(oldContract -> {
+                            Project.ContractUnit contractUnit = project.getLastContract(lastCid);
+                            // 校验最近版本是否使用中
+                            if (!Objects.nonNull(contractUnit))
+                                return Mono.error(new CommonException(404, "lastCid无效"));
+                            Contract.BaseInfo lastBaseInfo = contractUnit.getBaseInfo();
+                            // 项目记录
+                            project.getHistory().add(new Project.HistoryUnit(user.getName() + "回退了合同 " + lastBaseInfo.getName() + " 的版本"));
+                            // 项目删除当前版本
+                            project.getContracts().remove(contractUnit);
+                            // 项目添加历史版本
+                            project.getContracts().add(new Project.ContractUnit(oldCid, oldContract.getBaseInfo()));
+                            // 合同添加历史记录
+                            oldContract.getHistories().add(new Contract.History(lastCid, Contract.History.SYSTEM_TYPE,
+                                    "回退了合同 " + lastBaseInfo.getName() + " ，使用本版本覆盖")
+                                    .setModifier(user)
+                            );
+                            // 当前合同作废
+                            return contractRepository.UpdateStatusByCid(lastCid, Contract.TRASH_STATUS)
+                                    .then(contractRepository.save(oldContract));
+                        })
+                        .then(projectRepository.save(project)))
+                .flatMap(project -> ok().contentType(APPLICATION_JSON).bodyValue(project));
+    }
+
+    /**
+     * 获取指定合同数据
+     */
+    public Mono<ServerResponse> getContract(ServerRequest request) {
+        log.info("getContract");
+        String cid = request.pathVariable("cid");
+
+        return contractRepository.findById(cid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "cid 无效")))
+                .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
+    }
+
+    /**
+     * 申请编辑合同
+     * 创建新版本
+     * 返回基本配置以及合同信息
+     */
+    public Mono<ServerResponse> applyToEdit(ServerRequest request) {
+        log.info("applyToEdit");
+        User user = (User) request.attribute("user_info").get();
+        String pid = request.pathVariable("pid");
+        String cid = request.pathVariable("cid");
+
+        return this.checkCidAndPid(cid, pid)
+                .then(contractRepository.findById(cid))
+                // 创建新版本
+                .flatMap(this::createNewVersionContract)
+                // 获取配置
+                .flatMap(contract -> Office
+                        .applyToEdit(contract.getCid(), contract.getBaseInfo().getName() + "." + contract.getBaseInfo().getType(), "edit", user.getUid(), user.getName())
+                        .map(s -> new ApplyToEditResult(contract, s))
+                )
+                .flatMap(result -> ok().contentType(APPLICATION_JSON).bodyValue(result));
+    }
+
+    /**
+     * 申请审核合同
+     * 返回基本配置
+     */
+    public Mono<ServerResponse> applyToAudit(ServerRequest request) {
+        log.info("applyToAudit");
+        User user = (User) request.attribute("user_info").get();
+        String cid = request.pathVariable("cid");
+
+        return contractRepository.findById(cid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "cid无效")))
+                .flatMap(contract -> Office
+                        .applyToEdit(contract.getCid(), contract.getBaseInfo().getName() + "." + contract.getBaseInfo().getType(), "review", user.getUid(), user.getName()))
+                .flatMap(s -> ok().contentType(APPLICATION_JSON).bodyValue(s));
+    }
+
+    /**
+     * 保存合同修改信息
+     * 项目更新合同版本
+     */
+    public Mono<ServerResponse> addEditInfo(ServerRequest request) {
+        log.info("addEditInfo");
+        User user = (User) request.attribute("user_info").get();
+        String pid = request.pathVariable("pid");
+        String cid = request.pathVariable("cid");
+
+        return this.checkCidAndPid(cid, pid)
+                .then(contractRepository.findById(cid))
+                .flatMap(contract -> request
+                        .bodyToMono(AddEditInfoUnit.class)
+                        .flatMap(unit -> projectRepository.findById(pid)
+                                // 项目更新合同版本
+                                .filter(project -> project.coverContract(unit.getOldCid(), contract.getCid()))
+                                .flatMap(projectRepository::save)
+                                .thenReturn(contract)
+                                // 保存合同修改信息
+                                .doOnNext(c -> contract
+                                        .getHistories()
+                                        .add(new Contract.History(contract.getCid(), Contract.History.EDIT_TYPE, unit.getInfo())
+                                                .setModifier(user))
+                                )
+                                .flatMap(contractRepository::save)))
+                .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
+    }
+
+    /**
+     * 作废合同
+     * 合同添加作废记录
+     * 项目添加销毁记录
+     */
+    public Mono<ServerResponse> deleteContract(ServerRequest request) {
+        log.info("deleteContract");
+        User user = (User) request.attribute("user_info").get();
+        String pid = request.pathVariable("pid");
+        String cid = request.pathVariable("cid");
+
+        return this.checkCidAndPid(cid, pid)
+                // 合同添加作废记录
+                .then(contractRepository.findById(cid))
+                .doOnNext(contract -> contract.setStatus(Contract.TRASH_STATUS))
+                .doOnNext(contract -> contract
+                        .getHistories()
+                        .add(new Contract.History(contract.getCid(), Contract.History.SYSTEM_TYPE,
+                                "本合同被废弃")
+                                .setModifier(user)
+                        ))
+                // 项目添加销毁记录
+                .flatMap(contract -> projectRepository
+                        .findById(pid)
+                        .doOnNext(project -> project.getHistory().add(new Project.HistoryUnit(user.getName() + " 销毁了合同 " + contract.getBaseInfo().getName())))
+                        .flatMap(projectRepository::save)
+                        .thenReturn(contract)
+                )
+                .flatMap(contractRepository::save)
+                .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
+    }
+
+    /**
+     * 添加审核意见
+     * 添加历史记录
+     */
+    public Mono<ServerResponse> addAuditInfo(ServerRequest request) {
+        log.info("addAuditInfo");
+        User user = (User) request.attribute("user_info").get();
+        String cid = request.pathVariable("cid");
+
+        return request.bodyToMono(AddInfoUnit.class)
+                .flatMap(unit -> contractRepository
+                        .findById(cid)
+                        .switchIfEmpty(Mono.error(new CommonException(404, "cid 无效")))
+                        .doOnNext(contract -> contract.getHistories()
+                                .add(new Contract.History(contract.getCid(), Contract.History.AUDIT_TYPE, unit)
+                                        .setModifier(user)
+                                )))
+                .flatMap(contractRepository::save)
+                .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
+    }
+
+    /**
+     * 回到编辑环节
+     * 新增版本
+     * 项目内修改合同版本
+     * 添加合同的历史记录
+     * 设置status
+     * 设置handler
+     */
+    public Mono<ServerResponse> moveToEdit(ServerRequest request) {
+        log.info("moveToEdit");
+        User user = (User) request.attribute("user_info").get();
+        String pid = request.pathVariable("pid");
+        String cid = request.pathVariable("cid");
+
+        return this.checkCidAndPid(cid, pid)
+                .then(contractRepository.findById(cid))
+                // 创建新版本
+                .flatMap(this::createNewVersionContract)
+                .flatMap(contract -> projectRepository.findById(pid)
+                        // 项目内修改合同版本
+                        .doOnNext(project -> project.coverContract(cid, contract.getCid()))
+                        .flatMap(projectRepository::save)
+                        .map(Project::getDrafter)
+                        .map(drafter -> {
+                            // 更新合同信息
+                            contract.setStatus(Contract.EDIT_STATUS);
+                            contract.setHandler(drafter.getDid());
+                            contract.getHistories().add(new Contract.History(contract.getCid(), Contract.History.FLOW_TYPE,
+                                    "退回重新拟定")
+                                    .setModifier(user)
+                            );
+                            return contract;
+                        })
+                        .flatMap(contractRepository::save))
+                .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
+    }
+
+    /**
+     * 进入下一个步骤
+     * 新增版本
+     * 项目内修改合同版本
+     * 添加合同的历史记录
+     * 设置status
+     * 设置handler
+     * 合同完成时，添加项目历史记录
+     */
+    public Mono<ServerResponse> moveToNext(ServerRequest request) {
+        log.info("moveToNext");
+        User user = (User) request.attribute("user_info").get();
+        String pid = request.pathVariable("pid");
+        String cid = request.pathVariable("cid");
+
+        return this.checkCidAndPid(cid, pid)
+                .then(contractRepository.findById(cid))
+                // 创建新版本
+                .flatMap(this::createNewVersionContract)
+                .flatMap(contract -> projectRepository.findById(pid)
+                        .doOnNext(project -> {
+                            // 更新项目信息
+                            Project.UpdateInfoResult result = project.getNextUpdateInfo(cid, contract.getStatus(), contract.getHandler());
+                            contract.setStatus(result.getStatus());
+                            contract.setHandler(result.getHandler());
+                            contract.getHistories().add(new Contract.History(contract.getCid(), Contract.History.FLOW_TYPE,
+                                    result.getHistoryInfo())
+                                    .setModifier(user)
+                            );
+                            // 项目内修改合同版本
+                            project.coverContract(cid, contract.getCid());
+                            if (result.isCompleted()) {
+                                project.getHistory().add(new Project.HistoryUnit("合同" + contract.getBaseInfo().getName() + "已完成拟稿与审核"));
+                            }
+                        })
+                        .flatMap(projectRepository::save)
+                        .thenReturn(contract)
+                        .flatMap(contractRepository::save))
+                .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
+    }
+
+    /**
+     * 校验id参数 是否有效
+     * 无效抛出异常
+     */
+    public Mono<Boolean> checkCidAndPid(String cid, String pid) {
+
+        return projectRepository
+                .existsById(pid)
+                .filter(Boolean::booleanValue)
+                .switchIfEmpty(Mono.error(new CommonException(404, "pid无效")))
+                .then(contractRepository.existsById(cid))
+                .switchIfEmpty(Mono.error(new CommonException(404, "contract无效")))
+                .thenReturn(true);
+    }
+
+    /**
+     * 创建新的合同版本
+     * 设置uri
+     */
+    public Mono<Contract> createNewVersionContract(Contract oldCon) {
+
+        oldCon.setCid(null);
+
+        return contractRepository.save(oldCon)
+                .flatMap(newCon -> Office
+                        .copyTemplate(oldCon.getCid(), newCon.getCid())
+                        .filter(Boolean::booleanValue)
+                        .switchIfEmpty(Mono.error(new CommonException(501, "新版本尝试创建但是服务器存储失败")))
+                        .thenReturn(newCon))
+                .doOnNext(contract -> contract.setUri(Contract.BASE_URI + "/" + contract.getCid()));
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class AddInfoUnit {
+        private String summary = "";
+        private String details = "";
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class AddEditInfoUnit {
+        private String oldCid = "";
+        private AddInfoUnit info = new AddInfoUnit();
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ApplyToEditResult {
+        private Contract contract;
+        private String config;
+    }
 }
