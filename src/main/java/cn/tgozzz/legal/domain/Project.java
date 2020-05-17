@@ -14,9 +14,14 @@ import java.util.Date;
 @Document(collection = "project")
 @Data
 public class Project {
+
+    public static int STOP_STATUS = 0;
+    public static int RUNNING_STATUS = 1;
+    public static int COMPLETE_STATUS = 2;
+
     @Id
     private String pid;
-    private int status = 1; //状态
+    private int status = RUNNING_STATUS; //状态
     private BaseInfo baseInfo = new BaseInfo(); //基本信息
     private CreateInfo createInfo = new CreateInfo(); // 创建者信息
     private Director director = new Director(); // 负责人信息
@@ -27,7 +32,7 @@ public class Project {
 
     public ContractUnit getLastContract(String cid) {
         for (ContractUnit unit : this.getContracts()) {
-            if(unit.getCid().equals(cid)) {
+            if (unit.getCid().equals(cid)) {
                 return unit;
             }
         }
@@ -36,7 +41,7 @@ public class Project {
 
     public boolean coverContract(String oldCid, String newCid) {
         for (ContractUnit unit : this.getContracts()) {
-            if(unit.getCid().equals(oldCid)) {
+            if (unit.getCid().equals(oldCid)) {
                 unit.setCid(newCid);
                 return true;
             }
@@ -52,7 +57,6 @@ public class Project {
         int s = Contract.TRASH_STATUS;
         String h = "";
         String historyInfo = "";
-
 
 
         return new UpdateInfoResult(isCompleted, s, h, historyInfo);

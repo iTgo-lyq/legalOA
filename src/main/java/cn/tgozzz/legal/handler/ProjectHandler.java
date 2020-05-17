@@ -102,6 +102,22 @@ public class ProjectHandler {
     }
 
     /**
+     * 重启项目
+     */
+    public Mono<ServerResponse> restartProject(ServerRequest request) {
+        log.info("stopProject");
+        String pid = request.pathVariable("pid");
+        User user = (User) request.attribute("user_info").get();
+
+        return projectRepository.findById(pid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "pid无效")))
+                .doOnNext(project -> project.setStatus(Project.RUNNING_STATUS))
+                .doOnNext(project -> project.getHistory().add(new Project.HistoryUnit(user.getName() + " 重启项目")))
+                .flatMap(projectRepository::save)
+                .then(ok().bodyValue("重启成功"));
+    }
+
+    /**
      * 添加项目
      * 相关用户绑定项目
      */

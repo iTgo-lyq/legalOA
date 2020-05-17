@@ -47,6 +47,7 @@ public class ProjectRouter {
 
         return nest(path("/project/{pid}/status/"), route()
                 .PUT("stop", handler::stopProject)
+                .PUT("restart", handler::restartProject)
                 .build())
                 .filter(authFilter::attributeTokenFilter);
     }
