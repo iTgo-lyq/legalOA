@@ -27,6 +27,13 @@ public class UsersRouter {
     }
 
     @Bean
+    RouterFunction<ServerResponse> portraitRouter(UserHandler handler) {
+        return route()
+                .GET("/users/{uid}/portrait", handler::getPortrait)
+                .build();
+    }
+
+    @Bean
     RouterFunction<ServerResponse> pwRouter(UserHandler handler) {
         return route()
                 .PUT("/users/{uid}/password", handler::resetPassword)

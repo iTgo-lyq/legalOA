@@ -1,12 +1,10 @@
 package cn.tgozzz.legal.domain;
 
-import cn.tgozzz.legal.exception.CommonException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.web.reactive.function.server.ServerResponse;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -15,6 +13,7 @@ import java.util.Date;
 @Data
 public class Project {
 
+    public static int DELETE_STOP = -1;
     public static int STOP_STATUS = 0;
     public static int RUNNING_STATUS = 1;
     public static int COMPLETE_STATUS = 2;

@@ -17,7 +17,7 @@ import java.util.HashSet;
 @Data
 public class User {
 
-    static String[] portraits_sample = new String[]{"http://qiniu.tgozzz.cn/slime_sample_03.jpg", "http://qiniu.tgozzz.cn/slime_sample_02.jpg", "http://qiniu.tgozzz.cn/slime_sample_01.jpg", "http://qiniu.tgozzz.cn/slime_sample_00.jpg"};
+    public static String[] portraits_sample = new String[]{"http://qiniu.tgozzz.cn/slime_sample_03.jpg", "http://qiniu.tgozzz.cn/slime_sample_02.jpg", "http://qiniu.tgozzz.cn/slime_sample_01.jpg", "http://qiniu.tgozzz.cn/slime_sample_00.jpg"};
 
     @Id
     private String uid;

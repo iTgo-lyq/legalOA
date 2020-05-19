@@ -21,6 +21,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
@@ -326,6 +327,18 @@ public class UserHandler {
                 .switchIfEmpty(Mono.error(new CommonException(404, "uid 无效")))
                 .flatMap(repository::delete)
                 .then(ok().bodyValue("删除成功"));
+    }
+
+    /**
+     * 链接到头像
+     */
+    public Mono<ServerResponse> getPortrait(ServerRequest request) {
+        String uid = request.pathVariable("uid");
+
+        return repository.findById(uid)
+                .map(User::getPortrait)
+                .flatMap(s -> ServerResponse.permanentRedirect(URI.create(s)).build())
+                .switchIfEmpty(ServerResponse.permanentRedirect(URI.create(User.portraits_sample[0])).build());
     }
 
     @Data

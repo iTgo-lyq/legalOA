@@ -79,7 +79,7 @@ public class ProjectHandler {
 
         return projectRepository.findById(pid)
                 .switchIfEmpty(Mono.error(new CommonException(404, "pid无效")))
-                .doOnNext(project -> project.setStatus(-1))
+                .doOnNext(project -> project.setStatus(Project.DELETE_STOP))
                 .doOnNext(project -> project.getHistory().add(new Project.HistoryUnit(user.getName() + " 删除项目")))
                 .flatMap(projectRepository::save)
                 .then(ok().bodyValue("删除成功"));
@@ -95,7 +95,7 @@ public class ProjectHandler {
 
         return projectRepository.findById(pid)
                 .switchIfEmpty(Mono.error(new CommonException(404, "pid无效")))
-                .doOnNext(project -> project.setStatus(0))
+                .doOnNext(project -> project.setStatus(Project.STOP_STATUS))
                 .doOnNext(project -> project.getHistory().add(new Project.HistoryUnit(user.getName() + " 暂停项目")))
                 .flatMap(projectRepository::save)
                 .then(ok().bodyValue("暂停成功"));
