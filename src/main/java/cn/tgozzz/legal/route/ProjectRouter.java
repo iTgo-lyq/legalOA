@@ -25,7 +25,7 @@ public class ProjectRouter {
         return nest(path("/project/{pid}/contracts"), route()
                 .GET("", handler::listContract)
                 .POST("", contentType(MULTIPART_FORM_DATA), handler::uploadContract)
-                .POST("", contentType(APPLICATION_JSON), handler::createContract)
+                .POST("", handler::createContract)
                 .PATCH("", handler::confirmAddContract)
                 .PUT("", handler::rollbackContract)
                 .build()

@@ -126,44 +126,42 @@ public class ContractHandler {
         log.info("createContract");
         User user = (User) request.attribute("user_info").get();
         String pid = request.pathVariable("pid");
-//        String tid = request.queryParam("template").orElse("");
+        String tid = request.queryParam("template").orElse("");
 
-//        if (tid.equals(""))
-//            return Mono.error(new CommonException(400, "请提供模板id"));
+        if (tid.equals(""))
+            return Mono.error(new CommonException(400, "请提供模板id"));
 
-        return request.bodyToMono(CreateContractUnit.class).map(unit -> unit.template).flatMap(tid ->
-                templateRepository.findById(tid)
-                        .switchIfEmpty(Mono.error(new CommonException(404, "模板id无效")))
-                        .doOnNext(Template::addApply)
-                        .flatMap(templateRepository::save)
-                        .map(template -> {
-                            Contract contract = new Contract();
-                            //基本信息
-                            contract.getBaseInfo().setName(template.getName());
-                            contract.getBaseInfo().setType(template.getType());
-                            contract.getBaseInfo().setProject(pid);
-                            //创建者信息
-                            contract.setCreateInfo(user);
-                            return contract;
-                        })
-                        // 创建合同
-                        .flatMap(contractRepository::save)
-                        .flatMap(contract -> Office
-                                // office服务器copy操作
-                                .copyTemplate(tid, contract.getCid())
-                                // 虽然会主动抛出异常,还是过滤哈吧
-                                .filter(Boolean::booleanValue)
-                                .thenReturn(contract))
-                        // 添加历史记录
-                        .doOnNext(contract -> contract.getHistories().add(new Contract.History(contract.getCid(), Contract.History.SYSTEM_TYPE,
-                                "从模板 " + contract.getBaseInfo().getName() + " 创建合同")
-                                .setModifier(user)))
-                        // 设置uri
-                        .doOnNext(contract -> contract.setUri(Contract.BASE_URI + contract.getCid()))
-                        // 更新
-                        .flatMap(contractRepository::save)
-                        .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract))
-        );
+        return templateRepository.findById(tid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "模板id无效")))
+                .doOnNext(Template::addApply)
+                .flatMap(templateRepository::save)
+                .map(template -> {
+                    Contract contract = new Contract();
+                    //基本信息
+                    contract.getBaseInfo().setName(template.getName());
+                    contract.getBaseInfo().setType(template.getType());
+                    contract.getBaseInfo().setProject(pid);
+                    //创建者信息
+                    contract.setCreateInfo(user);
+                    return contract;
+                })
+                // 创建合同
+                .flatMap(contractRepository::save)
+                .flatMap(contract -> Office
+                        // office服务器copy操作
+                        .copyTemplate(tid, contract.getCid())
+                        // 虽然会主动抛出异常,还是过滤哈吧
+                        .filter(Boolean::booleanValue)
+                        .thenReturn(contract))
+                // 添加历史记录
+                .doOnNext(contract -> contract.getHistories().add(new Contract.History(contract.getCid(), Contract.History.SYSTEM_TYPE,
+                        "从模板 " + contract.getBaseInfo().getName() + " 创建合同")
+                        .setModifier(user)))
+                // 设置uri
+                .doOnNext(contract -> contract.setUri(Contract.BASE_URI + contract.getCid()))
+                // 更新
+                .flatMap(contractRepository::save)
+                .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
     }
 
     /**
