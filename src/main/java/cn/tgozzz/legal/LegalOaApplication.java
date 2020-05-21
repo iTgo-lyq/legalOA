@@ -32,6 +32,9 @@ public class LegalOaApplication implements WebFluxConfigurer {
 		registry.addResourceHandler( "/apidoc/*")
 				.addResourceLocations("classpath:apidoc/")
 				.setCacheControl(CacheControl.noCache());
+		registry.addResourceHandler("/sign/**")
+				.addResourceLocations("classpath:sign/")
+				.setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS));
 		registry.addResourceHandler("/resources/**")
 				.addResourceLocations("classpath:static/", "/srv/public/legalOA")
 				.setCacheControl(CacheControl.maxAge(365, TimeUnit.DAYS));
