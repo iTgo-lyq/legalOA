@@ -487,12 +487,12 @@ public class ContractHandler {
      * 设置uri
      */
     public Mono<Contract> createNewVersionContract(Contract oldCon) {
-
+        String oldCid = oldCon.getCid();
         oldCon.setCid(null);
 
         return contractRepository.save(oldCon)
                 .flatMap(newCon -> Office
-                        .copyTemplate(oldCon.getCid(), newCon.getCid())
+                        .copyTemplate(oldCid, newCon.getCid())
                         .filter(Boolean::booleanValue)
                         .switchIfEmpty(Mono.error(new CommonException(501, "新版本尝试创建但是服务器存储失败")))
                         .thenReturn(newCon))
