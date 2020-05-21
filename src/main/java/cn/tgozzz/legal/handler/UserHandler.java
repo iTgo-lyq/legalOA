@@ -341,6 +341,53 @@ public class UserHandler {
                 .switchIfEmpty(ServerResponse.permanentRedirect(URI.create(User.portraits_sample[0])).build());
     }
 
+    /**
+     * 添加签名
+     */
+    public Mono<ServerResponse> addSign(ServerRequest request) {
+        String uid = request.pathVariable("uid");
+
+        return repository.findById(uid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "uid无效")))
+                .flatMap(user -> request.bodyToMono(String.class)
+                        .doOnNext(s -> user.getSigns().add(s))
+                        .then(repository.save(user)))
+                .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user));
+    }
+
+    /**
+     * 删除签名
+     */
+    public Mono<ServerResponse> deleteSign(ServerRequest request) {
+        String uid = request.pathVariable("uid");
+        int index = Integer.parseInt(request.pathVariable("index"));
+
+        return repository.findById(uid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "uid无效")))
+                .doOnNext(user -> user.getSigns().remove(index))
+                .flatMap(repository::save)
+                .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user));
+    }
+
+    /**
+     * 设置默认签名
+     */
+    public Mono<ServerResponse> setDefaultSign(ServerRequest request) {
+        String uid = request.pathVariable("uid");
+        int index = Integer.parseInt(request.pathVariable("index"));
+
+        return repository.findById(uid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "uid无效")))
+                .doOnNext(user -> {
+                    ArrayList<String> signs =  user.getSigns();
+                    String sign = signs.get(index);
+                    signs.remove(index);
+                    signs.add(0, sign);
+                })
+                .flatMap(repository::save)
+                .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user));
+    }
+
     @Data
     @AllArgsConstructor
     @NoArgsConstructor

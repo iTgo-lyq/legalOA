@@ -20,6 +20,15 @@ public class UsersRouter {
     private AuthFilter authFilter;
 
     @Bean
+    RouterFunction<ServerResponse> signsRouter(UserHandler handler) {
+        return route()
+                .POST("/users/{uid}/signs", handler::addSign)
+                .DELETE("/users/{uid}/signs/{index}", handler::deleteSign)
+                .PUT("/users/{uid}/signs/{index}", handler::setDefaultSign)
+                .build();
+    }
+
+    @Bean
     RouterFunction<ServerResponse> statusRouter(UserHandler handler) {
         return route()
                 .PATCH("/users/{uid}/organization/status", handler::changeStatus)
@@ -62,17 +71,17 @@ public class UsersRouter {
 
     @Bean
     RouterFunction<ServerResponse> personRouter(UserHandler handler) {
-           return route().path("/users/",
-                   b1 -> b1.nest(accept(APPLICATION_JSON),
-                           b2 -> b2
-                                   .filter(authFilter::tokenFilter)
-                                   .GET("/{uid}", handler::getUser)
-                                   .PATCH("/{uid}", handler::updateUser)
-                                   .PUT("/{uid}", handler::coverUser)
-                                   .DELETE("/{uid}", handler::deleteUser)
-                                   .build())
-                           .POST("/", handler::addUserByCaptcha).build())
-                   .build();
+        return route().path("/users/",
+                b1 -> b1.nest(accept(APPLICATION_JSON),
+                        b2 -> b2
+                                .filter(authFilter::tokenFilter)
+                                .GET("/{uid}", handler::getUser)
+                                .PATCH("/{uid}", handler::updateUser)
+                                .PUT("/{uid}", handler::coverUser)
+                                .DELETE("/{uid}", handler::deleteUser)
+                                .build())
+                        .POST("/", handler::addUserByCaptcha).build())
+                .build();
     }
 
     @Bean

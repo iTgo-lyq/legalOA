@@ -37,6 +37,7 @@ public class User {
     private Organization organization = new Organization();
     private ArrayList<ProjectUnit> project = new ArrayList<>();
     private ArrayList<String> notice = new ArrayList<>();
+    private ArrayList<String> signs = new ArrayList<>();
 
     /**
      * MD5 加密密码
