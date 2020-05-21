@@ -139,7 +139,7 @@
         $.ajax({
           method: "post",
           url: `http://legal.tgozzz.cn/users/${uid}/signs`,
-          data: 'data:'+ datapair.join(''),
+          data: 'data:'+ datapair.join(','),
         })
           .then((res) => {
             console.log(res);
