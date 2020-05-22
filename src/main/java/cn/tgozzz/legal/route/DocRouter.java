@@ -12,7 +12,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 public class DocRouter {
 
     @Bean
-    RouterFunction<ServerResponse> routerFunction(DocHandler handler) {
+    RouterFunction<ServerResponse> docRoute(DocHandler handler) {
         return RouterFunctions.route(RequestPredicates.GET("/doc/api"), handler::toApidoc);
     }
 }
