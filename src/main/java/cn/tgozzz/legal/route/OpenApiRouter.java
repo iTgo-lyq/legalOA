@@ -1,10 +1,7 @@
 package cn.tgozzz.legal.route;
 
 import cn.tgozzz.legal.filter.SmsCaptchaFilter;
-import cn.tgozzz.legal.handler.ImageHandler;
-import cn.tgozzz.legal.handler.LtpHandler;
-import cn.tgozzz.legal.handler.SmsHandler;
-import cn.tgozzz.legal.handler.WordHandler;
+import cn.tgozzz.legal.handler.*;
 import cn.tgozzz.legal.utils.Checker;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +17,14 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.*
 
 @Configuration
 public class OpenApiRouter {
+
+    @Bean
+    RouterFunction<ServerResponse> officeRouter(OfficeHandler handler) {
+
+        return route()
+                .POST("/open-api/office/convert", handler::convert)
+                .build();
+    }
 
     /**
      * 图片上传下载相关接口，不支持覆盖

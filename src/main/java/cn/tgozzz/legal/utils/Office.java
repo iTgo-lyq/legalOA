@@ -1,11 +1,13 @@
 package cn.tgozzz.legal.utils;
 
 import cn.tgozzz.legal.exception.CommonException;
+import cn.tgozzz.legal.handler.OfficeHandler;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.http.codec.multipart.Part;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.MULTIPART_FORM_DATA;
 
 public class Office {
@@ -15,7 +17,7 @@ public class Office {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
         builder.part("uploadedFile", file);
 
-        return  WebClient.create("http://legal.tgozzz.cn/office/upload?tid=" + tid)
+        return WebClient.create("http://legal.tgozzz.cn/office/upload?tid=" + tid)
                 .post().contentType(MULTIPART_FORM_DATA)
                 .bodyValue(builder.build())
                 .retrieve()
@@ -23,7 +25,7 @@ public class Office {
     }
 
     public static Mono<Boolean> copyTemplate(String oldTid, String newTid) {
-        return  WebClient.create("http://legal.tgozzz.cn/office/copyTemplate?old=" + oldTid + "&new=" + newTid)
+        return WebClient.create("http://legal.tgozzz.cn/office/copyTemplate?old=" + oldTid + "&new=" + newTid)
                 .get()
                 .retrieve()
                 .bodyToMono(String.class)
@@ -45,6 +47,16 @@ public class Office {
                 "&userid=" + uid +
                 "&name=" + userName)
                 .get()
+                .retrieve()
+                .bodyToMono(String.class);
+    }
+
+    public static Mono<String> convert(OfficeHandler.ConvertUnit config) {
+        return WebClient.create("http://legal.tgozzz.cn/documentServer/ConvertService.ashx")
+                .post()
+                .contentType(APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
+                .bodyValue(config)
                 .retrieve()
                 .bodyToMono(String.class);
     }
