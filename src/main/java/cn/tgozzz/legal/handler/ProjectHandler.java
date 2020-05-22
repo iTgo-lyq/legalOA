@@ -139,7 +139,7 @@ public class ProjectHandler {
                                 .add(new User.ProjectUnit(project.getPid(), "creator", project.getBaseInfo())))
                         // 添加通知
                         .flatMap(u -> noticeRepository
-                                .save(new Notice("system", "html", "您已成功创建项目 " + project.getBaseInfo().getName()))
+                                .save(new Notice("system", "html", "您已成功创建项目 <a class='$class$' href='$link$'>" + project.getBaseInfo().getName() + "</a>"))
                                 .doOnNext(notice -> u.getNotice().add(notice.getNid()))
                                 .thenReturn(u))
                         .flatMap(userRepository::save)
@@ -155,7 +155,7 @@ public class ProjectHandler {
                                 .add(new User.ProjectUnit(project.getPid(), "director", project.getBaseInfo())))
                         // 添加通知
                         .flatMap(u -> noticeRepository
-                                .save(new Notice("system", "html", "您已被指定为项目 " + project.getBaseInfo().getName() + " 的负责人"))
+                                .save(new Notice("system", "html", "您已被指定为项目 <a class='$class$' href='$link$'>" + project.getBaseInfo().getName() + "</a> 的负责人"))
                                 .doOnNext(notice -> u.getNotice().add(notice.getNid()))
                                 .thenReturn(u))
 
@@ -175,7 +175,7 @@ public class ProjectHandler {
                                 .getProject()
                                 .add(new User.ProjectUnit(project.getPid(), "drafter", project.getBaseInfo())))
                         .flatMap(u -> noticeRepository
-                                .save(new Notice("system", "html", "项目 " + project.getBaseInfo().getName() + " 将由您以及您的的团队成员负责 合同拟稿"))
+                                .save(new Notice("system", "html", "项目 <a class='$class$' href='$link$'>" + project.getBaseInfo().getName() + "</a> 将由您以及您的的团队成员负责 合同拟稿"))
                                 .doOnNext(notice -> u.getNotice().add(notice.getNid()))
                                 .thenReturn(u))
                         .flatMap(userRepository::save)
@@ -199,7 +199,7 @@ public class ProjectHandler {
                                 .getProject()
                                 .add(new User.ProjectUnit(project.getPid(), "auditor", project.getBaseInfo())))
                         .flatMap(u -> noticeRepository
-                                .save(new Notice("system", "html", "项目 " + project.getBaseInfo().getName() + " 将由您以及您的的团队成员负责 合同审核"))
+                                .save(new Notice("system", "html", "项目 <a class='$class$' href='$link$'>" + project.getBaseInfo().getName() + "</a> 将由您以及您的的团队成员负责 合同审核"))
                                 .doOnNext(notice -> u.getNotice().add(notice.getNid()))
                                 .thenReturn(u))
                         .flatMap(userRepository::save)
