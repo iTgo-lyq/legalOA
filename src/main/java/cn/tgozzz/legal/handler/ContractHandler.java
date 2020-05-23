@@ -468,6 +468,29 @@ public class ContractHandler {
     }
 
     /**
+     * 重命名合同
+     * 合同历史添加一条记录
+     */
+    public Mono<ServerResponse> rename(ServerRequest request) {
+        log.info("rename");
+        User user = (User) request.attribute("user_info").get();
+        String pid = request.pathVariable("pid");
+        String cid = request.pathVariable("cid");
+
+        return this.checkCidAndPid(cid, pid)
+                .then(request.bodyToMono(RenameUnit.class))
+                .flatMap(unit -> contractRepository.findById(cid)
+                        .doOnNext(contract -> contract.getHistories().add(new Contract.History(contract.getCid(), Contract.History.EDIT_TYPE,
+                                user.getName() + " 重命名合同 " + contract.getBaseInfo().getName() + " 至 " + unit.getName())
+                                .setModifier(user))
+                        )
+                        .doOnNext(contract -> contract.getBaseInfo().setName(unit.getName()))
+                        .flatMap(contractRepository::save)
+                )
+                .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
+    }
+
+    /**
      * 校验id参数 是否有效
      * 无效抛出异常
      */
@@ -517,6 +540,12 @@ public class ContractHandler {
     @NoArgsConstructor
     public static class CreateContractUnit {
         private String template = "";
+    }
+
+    @Data
+    @NoArgsConstructor
+    public static class RenameUnit {
+        private String name = "";
     }
 
     @Data

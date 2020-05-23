@@ -38,6 +38,7 @@ public class ProjectRouter {
                         .POST("/audit", handler::addAuditInfo)
                         .POST("/back", handler::moveToEdit)
                         .POST("/next", handler::moveToNext)
+                        .PUT("/baseinfo/name", handler::rename)
                         .build()))
                 .filter(authFilter::attributeTokenFilter);
     }
