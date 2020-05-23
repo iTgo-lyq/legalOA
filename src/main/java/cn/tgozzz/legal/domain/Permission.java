@@ -17,11 +17,39 @@ public class Permission {
     private HashMap<String, PermUnit> children = new HashMap<>();
 
     public Permission() {
-        HashMap<String, PermUnit> userMap = new HashMap<>();
-        userMap.put("template", new PermUnit("查阅模板", "/template", "/template", false, null));
+        HashMap<String, PermUnit> templateMap = new HashMap<>();
+        templateMap.put("lookLib", new PermUnit("查阅模板库", "/lookLib", "/lookLib", false, null));
+        templateMap.put("createLib", new PermUnit("创建模板库", "/createLib", "/createLib", false, null));
+        templateMap.put("deleteLib", new PermUnit("删除模板库", "/deleteLib", "/deleteLib", false, null));
+        templateMap.put("lookTemp", new PermUnit("查看模板", "/lookTemp", "/lookTemp", false, null));
+        templateMap.put("downloadTemp", new PermUnit("下载模板", "/downloadTemp", "/downloadTemp", false, null));
+        templateMap.put("addTemp", new PermUnit("添加模板", "/template", "/template", false, null));
+        templateMap.put("updateTemp", new PermUnit("修改模板", "/template", "/template", false, null));
+        templateMap.put("moveTemp", new PermUnit("移动模板", "/template", "/template", false, null));
+        templateMap.put("deleteTemp", new PermUnit("删除模板", "/template", "/template", false, null));
 
-        children.put("management", new PermUnit("管理", "/", "/management", false, null));
-        children.put("user", new PermUnit("用户", "/user", "/user", false, userMap));
+        HashMap<String, PermUnit> projectMap = new HashMap<>();
+        projectMap.put("createProject", new PermUnit("创建项目", "/template", "/template", false, null));
+        projectMap.put("deleteProject", new PermUnit("删除项目", "/template", "/template", false, null));
+        projectMap.put("stopProject", new PermUnit("停止项目", "/template", "/template", false, null));
+        projectMap.put("restartProject", new PermUnit("重启项目", "/template", "/template", false, null));
+
+        HashMap<String, PermUnit> adminMap = new HashMap<>();
+        adminMap.put("uploadUser", new PermUnit("导入用户", "/template", "/template", false, null));
+        adminMap.put("addUser", new PermUnit("添加用户", "/template", "/template", false, null));
+        adminMap.put("updateUser", new PermUnit("修改用户", "/template", "/template", false, null));
+        adminMap.put("deleteUser", new PermUnit("添加用户", "/template", "/template", false, null));
+        adminMap.put("addDept", new PermUnit("添加部门", "/template", "/template", false, null));
+        adminMap.put("updateDept", new PermUnit("修改部门", "/template", "/template", false, null));
+        adminMap.put("deleteDept", new PermUnit("删除部门", "/template", "/template", false, null));
+        adminMap.put("addRole", new PermUnit("添加角色", "/template", "/template", false, null));
+        adminMap.put("updateRole", new PermUnit("修改角色", "/template", "/template", false, null));
+        adminMap.put("deleteRole", new PermUnit("删除角色", "/template", "/template", false, null));
+
+
+        children.put("template", new PermUnit("模板库", "/user", "/user", false, templateMap));
+        children.put("project", new PermUnit("项目管理", "/", "/management", false, projectMap));
+        children.put("admin", new PermUnit("后台管理", "/", "/management", false, adminMap));
     }
 
     /**
