@@ -103,9 +103,10 @@ public class ContractHandler {
                                     // 上传office服务器
                                     .upload(part, contract.getCid())
                                     // 判断上传情况
-                                    .filter(s -> s.contains("filename"))
-                                    .switchIfEmpty(Mono.error(new CommonException(501, "中奖了，文件上传失败")))
-                                    .thenReturn(contract)
+                                    .filter(s -> !s.contains("filename"))
+                                    .flatMap(s -> Mono.error(new CommonException(501, "中奖了，文件上传失败 "+s)))
+                                    .defaultIfEmpty(contract)
+                                    .map(obj -> (Contract)obj)
                             );
                 })
                 .doOnNext(contract -> {
