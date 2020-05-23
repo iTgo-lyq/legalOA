@@ -1,13 +1,8 @@
 package cn.tgozzz.legal.handler;
 
-import cn.tgozzz.legal.domain.Contract;
-import cn.tgozzz.legal.domain.Project;
-import cn.tgozzz.legal.domain.Template;
-import cn.tgozzz.legal.domain.User;
+import cn.tgozzz.legal.domain.*;
 import cn.tgozzz.legal.exception.CommonException;
-import cn.tgozzz.legal.repository.ContractRepository;
-import cn.tgozzz.legal.repository.ProjectRepository;
-import cn.tgozzz.legal.repository.TemplateRepository;
+import cn.tgozzz.legal.repository.*;
 import cn.tgozzz.legal.utils.Office;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,7 +15,11 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.springframework.http.MediaType.*;
 import static org.springframework.web.reactive.function.server.ServerResponse.*;
@@ -35,10 +34,19 @@ public class ContractHandler {
 
     private final TemplateRepository templateRepository;
 
-    public ContractHandler(ContractRepository contractRepository, ProjectRepository projectRepository, TemplateRepository templateRepository) {
+    private final NoticeRepository noticeRepository;
+
+    private final UserRepository userRepository;
+
+    private final DepartmentRepository departmentRepository;
+
+    public ContractHandler(ContractRepository contractRepository, ProjectRepository projectRepository, TemplateRepository templateRepository, NoticeRepository noticeRepository, UserRepository userRepository, DepartmentRepository departmentRepository) {
         this.contractRepository = contractRepository;
         this.projectRepository = projectRepository;
         this.templateRepository = templateRepository;
+        this.noticeRepository = noticeRepository;
+        this.userRepository = userRepository;
+        this.departmentRepository = departmentRepository;
     }
 
     /**
@@ -423,6 +431,22 @@ public class ContractHandler {
                             return contract;
                         })
                         .flatMap(contractRepository::save))
+                // 通知编辑部门重修
+                .flatMap(contract -> noticeRepository
+                        .save((new Notice("system", "html", "合同 <a data-cid='" + contract.getCid() + "' class='$class$' href='$link$'>" + contract.getBaseInfo().getName() + "</a> 已被退回，请求参考审核意见重修")))
+                        .flatMap(notice -> this
+                                .findAllDepartments(contract.getHandler())
+                                .flux()
+                                // 查询所有部门有关人员
+                                .flatMap(userRepository::findAllInProjects)
+                                // 绑定通知
+                                .doOnNext(u -> u.getNotice().add(notice.getNid()))
+                                .flatMap(userRepository::save)
+                                .collectList()
+                                .thenReturn(notice)
+                        )
+                        .thenReturn(contract)
+                )
                 .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
     }
 
@@ -447,7 +471,7 @@ public class ContractHandler {
                 .flatMap(this::createNewVersionContract)
                 .flatMap(contract -> projectRepository.findById(pid)
                         .doOnNext(project -> {
-                            // 更新项目信息
+                            // 更新合同信息
                             Project.UpdateInfoResult result = project.getNextUpdateInfo(cid, contract.getStatus(), contract.getHandler());
                             contract.setStatus(result.getStatus());
                             contract.setHandler(result.getHandler());
@@ -464,6 +488,32 @@ public class ContractHandler {
                         .flatMap(projectRepository::save)
                         .thenReturn(contract)
                         .flatMap(contractRepository::save))
+                // 通知下一个流程的部门处理合同
+                .flatMap(contract -> noticeRepository
+                        .save((new Notice("system", "html", "合同 <a data-cid='" + contract.getCid() + "' class='$class$' href='$link$'>" + contract.getBaseInfo().getName() + "</a> " + (contract.getStatus() == Contract.COMPLETE_STATUS ? "已完成拟稿与审核工作" : "等待您的审核"))))
+                        .flatMap(notice -> contract.getStatus() == Contract.COMPLETE_STATUS
+                                ?
+                                // 同志负责人
+                                userRepository
+                                        .findById(contract.getHandler())
+                                        .doOnNext(u -> u.getNotice().add(notice.getNid()))
+                                        .flatMap(userRepository::save)
+                                        .thenReturn(notice)
+                                :
+                                // 通知部门
+                                this
+                                        .findAllDepartments(contract.getHandler())
+                                        .flux()
+                                        // 查询所有部门有关人员
+                                        .flatMap(userRepository::findAllInProjects)
+                                        // 绑定通知
+                                        .doOnNext(u -> u.getNotice().add(notice.getNid()))
+                                        .flatMap(userRepository::save)
+                                        .collectList()
+                                        .thenReturn(notice)
+                        )
+                        .thenReturn(contract)
+                )
                 .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
     }
 
@@ -520,6 +570,28 @@ public class ContractHandler {
                         .switchIfEmpty(Mono.error(new CommonException(501, "新版本尝试创建但是服务器存储失败")))
                         .thenReturn(newCon))
                 .doOnNext(contract -> contract.setUri(Contract.BASE_URI + "/" + contract.getCid()));
+    }
+
+    /**
+     * 找出该部门关联的所有子部门以及他本身
+     */
+    public Mono<ArrayList<String>> findAllDepartments(String did) {
+        ArrayList<String> res = new ArrayList<>();
+        HashMap<String, ArrayList<String>> map = new HashMap<>();
+        AtomicInteger index = new AtomicInteger(-1);
+
+        res.add(did);
+
+        return departmentRepository.findAll()
+                .doOnNext(department ->
+                        map.put(department.getDid(), department.getSubordinates()))
+                .collectList()
+                .doOnNext(departments -> {
+                    while (index.incrementAndGet() < res.size()) {
+                        res.addAll(map.get(res.get(index.get())));
+                    }
+                })
+                .thenReturn(res);
     }
 
     @Data

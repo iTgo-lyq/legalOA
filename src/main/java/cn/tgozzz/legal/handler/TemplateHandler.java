@@ -3,6 +3,7 @@ package cn.tgozzz.legal.handler;
 import cn.tgozzz.legal.domain.Template;
 import cn.tgozzz.legal.domain.TemplateGroup;
 import cn.tgozzz.legal.exception.CommonException;
+import cn.tgozzz.legal.repository.NoticeRepository;
 import cn.tgozzz.legal.repository.TemplateGroupRepository;
 import cn.tgozzz.legal.repository.TemplateRepository;
 import cn.tgozzz.legal.utils.Office;
@@ -20,7 +21,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 
 import static org.springframework.http.MediaType.*;
 import static org.springframework.web.reactive.function.server.ServerResponse.*;

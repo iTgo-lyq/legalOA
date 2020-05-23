@@ -1,5 +1,6 @@
 package cn.tgozzz.legal.domain;
 
+import cn.tgozzz.legal.exception.CommonException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -51,14 +52,48 @@ public class Project {
     /**
      * 构造下一步的参数
      */
-    public UpdateInfoResult getNextUpdateInfo(String cid, int status, String handler) {
+    public UpdateInfoResult getNextUpdateInfo(String newCid, int status, String handler) {
         boolean isCompleted = false;
         int s = Contract.TRASH_STATUS;
-        String h = "";
-        String historyInfo = "";
+        String h = handler;
+        String historyInfo = "无效的操作";
 
+        if (status == Contract.EDIT_STATUS) {
+            AuditorUnit auditor = this.getSortedAuditor().get(0);
+            s = Contract.AUDIT_STATUS;
+            h = auditor.getDid();
+            historyInfo = "拟稿完毕，移交审核部门 " + auditor.getName();
+            return new UpdateInfoResult(isCompleted, s, h, historyInfo);
+        }
+
+        if (status == Contract.AUDIT_STATUS) {
+            ArrayList<AuditorUnit> auditorList = this.getSortedAuditor();
+            for (int i = 0; i < auditorList.size(); i++) {
+                AuditorUnit nowAuditor = auditorList.get(i);
+                if (handler.equals(nowAuditor.getDid())) {
+                    if (i == auditorList.size() - 1) {
+                        isCompleted = true;
+                        s = Contract.COMPLETE_STATUS;
+                        h = this.getDirector().getUid();
+                        historyInfo = nowAuditor.getName() + " 审核完毕，预备进行签署，转交负责人 " + this.getDirector().getName();
+                    } else {
+                        AuditorUnit nextAuditor = auditorList.get(i);
+                        s = Contract.AUDIT_STATUS;
+                        h = nextAuditor.getDid();
+                        historyInfo = nowAuditor.getName() + " 审核完毕，进入下一部门审核 " + nextAuditor.getName();
+                    }
+                    return new UpdateInfoResult(isCompleted, s, h, historyInfo);
+                }
+            }
+        }
 
         return new UpdateInfoResult(isCompleted, s, h, historyInfo);
+    }
+
+    public ArrayList<AuditorUnit> getSortedAuditor() {
+        ArrayList<AuditorUnit> copyList = (ArrayList<AuditorUnit>) this.auditor.clone();
+        copyList.sort((a1, a2) -> a1.order - a2.order);
+        return copyList;
     }
 
     @Data
