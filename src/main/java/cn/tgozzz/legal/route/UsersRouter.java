@@ -25,6 +25,7 @@ public class UsersRouter {
                 .POST("/users/{uid}/signs", handler::addSign)
                 .DELETE("/users/{uid}/signs/{index}", handler::deleteSign)
                 .PUT("/users/{uid}/signs/{index}", handler::setDefaultSign)
+                .GET("/users/{uid}/signs/{index}", handler::getSign)
                 .build();
     }
 

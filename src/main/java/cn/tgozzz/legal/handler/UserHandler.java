@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.TEXT_PLAIN;
 import static org.springframework.web.reactive.function.server.ServerResponse.*;
 
 @Log4j2
@@ -386,6 +387,21 @@ public class UserHandler {
                 })
                 .flatMap(repository::save)
                 .flatMap(user -> ok().contentType(APPLICATION_JSON).bodyValue(user));
+    }
+
+    /**
+     * 获取指定index签名
+     */
+    public Mono<ServerResponse> getSign(ServerRequest request) {
+        String uid = request.pathVariable("uid");
+        int index = Integer.parseInt(request.pathVariable("index")) ;
+
+        return repository.findById(uid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "uid无效")))
+                .filter(user -> user.getSigns().size() > 0)
+                .map(user -> user.getSigns().get(index))
+                .flatMap(s -> ok().contentType(TEXT_PLAIN).bodyValue(s))
+                .switchIfEmpty(ok().contentType(TEXT_PLAIN).bodyValue(""));
     }
 
     @Data
