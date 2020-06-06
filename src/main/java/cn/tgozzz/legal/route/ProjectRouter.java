@@ -20,6 +20,13 @@ public class ProjectRouter {
     private AuthFilter authFilter;
 
     @Bean
+    RouterFunction<ServerResponse> tempContractRoute(ContractHandler handler) {
+        return route()
+                .POST("/project/temp/contracts", contentType(MULTIPART_FORM_DATA), handler::uploadTempContract)
+                .build();
+    }
+
+    @Bean
     RouterFunction<ServerResponse> contractRoute(ContractHandler handler) {
 
         return nest(path("/project/{pid}/contracts"), route()

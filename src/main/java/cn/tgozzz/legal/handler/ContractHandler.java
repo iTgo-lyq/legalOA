@@ -67,6 +67,57 @@ public class ContractHandler {
     }
 
     /**
+     * 上传临时合同文件，保存到数据库，所属project默认为temp
+     */
+    public Mono<ServerResponse> uploadTempContract(ServerRequest request) {
+        log.info("uploadTempContract");
+        User user = (User) request.attribute("user_info").get();
+        String pid = "temp";
+
+        return request.multipartData()
+                // 获取文件部分信息
+                .map(map -> map.get("file").get(0))
+                .flatMap(part -> {
+                    Contract emptyContract = new Contract();
+
+                    // 设置默认基本信息
+                    Contract.BaseInfo baseInfo = new Contract.BaseInfo();
+                    String fileName = ((FilePart) part).filename();
+                    int pointIndex = fileName.lastIndexOf(".");
+                    baseInfo.setName(fileName.substring(0, pointIndex));
+                    baseInfo.setType(fileName.substring(pointIndex + 1));
+                    baseInfo.setProject(pid);
+
+                    //设置创建者信息
+                    emptyContract.setCreateInfo(user);
+                    emptyContract.setBaseInfo(baseInfo);
+
+                    return contractRepository.save(emptyContract)
+                            // 拿到记录实体
+                            .flatMap(contract -> Office
+                                    // 上传office服务器
+                                    .upload(part, contract.getCid())
+                                    // 判断上传情况
+                                    .filter(s -> !s.contains("filename"))
+                                    .flatMap(s -> Mono.error(new CommonException(501, "中奖了，文件上传失败 "+s)))
+                                    .defaultIfEmpty(contract)
+                                    .map(obj -> (Contract)obj)
+                            );
+                })
+                .doOnNext(contract -> {
+                    // 设置uri
+                    contract.setUri(Contract.BASE_URI + contract.getCid());
+                    // 添加历史追踪
+                    contract.getHistories().add(new Contract.History(contract.getCid(), Contract.History.SYSTEM_TYPE,
+                            "上传临时合同文件")
+                            .setModifier(user));
+                })
+                // 保存信息
+                .flatMap(contractRepository::save)
+                .flatMap(contract -> ok().contentType(APPLICATION_JSON).bodyValue(contract));
+    }
+
+    /**
      * 上传合同
      * 仅仅上传
      * 设置uri
