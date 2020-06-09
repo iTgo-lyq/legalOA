@@ -7,12 +7,17 @@ import org.apache.poi.hwpf.converter.WordToHtmlConverter;
 import org.apache.poi.poifs.filesystem.DirectoryEntry;
 import org.apache.poi.poifs.filesystem.DocumentEntry;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.converter.core.BasicURIResolver;
 import org.apache.poi.xwpf.converter.core.FileImageExtractor;
 import org.apache.poi.xwpf.converter.xhtml.XHTMLConverter;
 import org.apache.poi.xwpf.converter.xhtml.XHTMLOptions;
-import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import reactor.core.publisher.Mono;
+import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
+import org.apache.poi.xwpf.usermodel.*;
+import org.apache.xmlbeans.XmlException;
+import org.openxmlformats.schemas.drawingml.x2006.main.CTGraphicalObject;
+import org.openxmlformats.schemas.drawingml.x2006.wordprocessingDrawing.CTAnchor;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTDrawing;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -22,8 +27,9 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class WordUtils {
@@ -35,11 +41,12 @@ public class WordUtils {
 
     /**
      * word转html 返回文件路径
-     * @param wid 文件唯一id
+     *
+     * @param wid         文件唯一id
      * @param sourceMedia 源文件类型
      * @param targetMedia 目标文件类型
      */
-    public static String transform(String wid,String sourceMedia, String targetMedia) throws ParserConfigurationException, TransformerException, IOException {
+    public static String transform(String wid, String sourceMedia, String targetMedia) throws ParserConfigurationException, TransformerException, IOException {
 
         switch (sourceMedia + "-" + targetMedia) {
             case "doc-html":
@@ -49,13 +56,13 @@ public class WordUtils {
             case "html-doc":
                 return htmlToDoc(wid);
         }
-                throw  new CommonException("文件类型错误");
+        throw new CommonException("文件类型错误");
     }
 
     /**
      * 文档格式转换
+     *
      * @param fileName 文件名不带后缀
-     * @return
      */
     @SneakyThrows
     private static String docxToHtml(String fileName) {
@@ -86,11 +93,8 @@ public class WordUtils {
 
     /**
      * 文档格式转换
+     *
      * @param fileName 不包含文件后缀
-     * @return
-     * @throws TransformerException
-     * @throws IOException
-     * @throws ParserConfigurationException
      */
     private static String docToHtml(String fileName) throws TransformerException, IOException, ParserConfigurationException {
 
@@ -101,7 +105,7 @@ public class WordUtils {
         File imageDir = new File(URI.create("file://" + imagePath));
         File sourceFile = new File(URI.create("file://" + sourceFilePath));
         File targetFile = new File(URI.create("file://" + targetFilePath));
-        if(!imageDir.exists()) {
+        if (!imageDir.exists()) {
             imageDir.mkdirs();
         }
         HWPFDocument wordDocument;
@@ -143,13 +147,14 @@ public class WordUtils {
 
     /**
      * 文档格式换砖
+     *
      * @param fileName 不包含后缀
      * @return
      * @throws IOException
      */
     private static String htmlToDoc(String fileName) throws IOException {
 
-        String sourceFilePath= baseHtmlDocPath + fileName + ".html";
+        String sourceFilePath = baseHtmlDocPath + fileName + ".html";
         String targetFilePath = baseWordPath + fileName + ".doc";
 
         File sourceFile = new File(URI.create("file://" + sourceFilePath));
@@ -160,7 +165,7 @@ public class WordUtils {
         bf = new BufferedReader(new FileReader(sourceFile));
 
         String s;
-        while((s = bf.readLine())!=null){//使用readLine方法，一次读一行
+        while ((s = bf.readLine()) != null) {//使用readLine方法，一次读一行
             buffer.append(s.trim());
         }
         String xml = buffer.toString();
@@ -179,17 +184,134 @@ public class WordUtils {
         return targetFilePath;
     }
 
+    public static void main(String[] args) throws Exception {
+        String path = "D:\\test\\test.docx";
+        File file = new File(path);
+        XWPFDocument document = new XWPFDocument(new FileInputStream(file));
+        document.createParagraph().createRun().setText("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
+        ArrayList<XWPFParagraph> paragraphs = new ArrayList<>(document.getParagraphs());
+        for(XWPFParagraph paragraph: paragraphs) {
+//            System.out.println(paragraph.);
+            System.out.println("————————————————————————————————————————————————————————————");
+        }
+        XWPFParagraph paragraph = document.createParagraph();
+        XWPFRun run = paragraph.createRun();
+        // 设置图片
+        run.setText("测试图片: ");
+        // 添加浮动图片
+        run = paragraph.createRun();
+        InputStream in = new FileInputStream("D:\\test\\2.png");
+        run.addPicture(in, Document.PICTURE_TYPE_PNG, "TEST", Units.toEMU(100), Units.toEMU(30));
+        in.close();
+        // 2. 获取到图片数据
+        CTDrawing drawing = run.getCTR().getDrawingArray(0);
+        CTGraphicalObject graphicalobject = drawing.getInlineArray(0).getGraphic();
+
+        //拿到新插入的图片替换添加CTAnchor 设置浮动属性 删除inline属性
+        CTAnchor anchor = getAnchorWithGraphic(graphicalobject, "TEST1",
+                Units.toEMU(100), Units.toEMU(30),//图片大小
+                Units.toEMU(50), Units.toEMU(0), false);//相对当前段落位置 需要计算段落已有内容的左偏移
+        drawing.setAnchorArray(new CTAnchor[]{anchor});//添加浮动属性
+        drawing.removeInline(0);//删除行内属性
+        run.setText("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
+        document.write(new FileOutputStream("D:\\test\\test2.docx"));
+        document.close();
+    }
+
+    /**
+     * @param ctGraphicalObject 图片数据
+     * @param deskFileName      图片描述
+     * @param width             宽
+     * @param height            高
+     * @param leftOffset        水平偏移 left
+     * @param topOffset         垂直偏移 top
+     * @param behind            文字上方，文字下方
+     * @return
+     * @throws Exception
+     */
+    public static CTAnchor getAnchorWithGraphic(CTGraphicalObject ctGraphicalObject,
+                                                String deskFileName, int width, int height,
+                                                int leftOffset, int topOffset, boolean behind) {
+        String anchorXML =
+                "<wp:anchor xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\" "
+                        + "simplePos=\"0\" relativeHeight=\"0\" behindDoc=\"" + ((behind) ? 1 : 0) + "\" locked=\"0\" layoutInCell=\"1\" allowOverlap=\"1\">"
+                        + "<wp:simplePos x=\"0\" y=\"0\"/>"
+                        + "<wp:positionH relativeFrom=\"column\">"
+                        + "<wp:posOffset>" + leftOffset + "</wp:posOffset>"
+                        + "</wp:positionH>"
+                        + "<wp:positionV relativeFrom=\"paragraph\">"
+                        + "<wp:posOffset>" + topOffset + "</wp:posOffset>" +
+                        "</wp:positionV>"
+                        + "<wp:extent cx=\"" + width + "\" cy=\"" + height + "\"/>"
+                        + "<wp:effectExtent l=\"0\" t=\"0\" r=\"0\" b=\"0\"/>"
+                        + "<wp:wrapNone/>"
+                        + "<wp:docPr id=\"1\" name=\"Drawing 0\" descr=\"" + deskFileName + "\"/><wp:cNvGraphicFramePr/>"
+                        + "</wp:anchor>";
+
+        CTDrawing drawing = null;
+        try {
+            drawing = CTDrawing.Factory.parse(anchorXML);
+        } catch (XmlException e) {
+            e.printStackTrace();
+        }
+        CTAnchor anchor = drawing.getAnchorArray(0);
+        anchor.setGraphic(ctGraphicalObject);
+        return anchor;
+    }
+
+    /**
+     * 读取docx文件中的所有图片
+     */
+    public static String readDocxImage(String srcFile, String imageFile) {
+        String path = srcFile;
+        File file = new File(path);
+        try {
+            // 读取文件
+            FileInputStream fis = new FileInputStream(file);
+            XWPFDocument document = new XWPFDocument(fis);
+            // 用XWPFWordExtractor来获取文字
+            XWPFWordExtractor xwpfWordExtractor = new XWPFWordExtractor(document);
+            String text = xwpfWordExtractor.getText();
+            //将获取到的文字存放到对应文件名中的txt文件中
+            String temp[] = srcFile.split("\\/");
+            String temp1 = temp[temp.length - 1];
+            String temp3[] = temp1.split("\\.");
+            String txtFileName = "D:/test/" + temp3[0] + ".txt";
+            PrintStream ps = new PrintStream(txtFileName);
+            ps.println(text);
+
+            // 用XWPFDocument的getAllPictures来获取所有的图片
+            List<XWPFPictureData> picList = document.getAllPictures();
+            for (XWPFPictureData pic : picList) {
+                System.out.println(pic.getPictureType() + file.separator + pic.suggestFileExtension() + file.separator
+                        + pic.getFileName());
+                byte[] bytev = pic.getData();
+                System.out.println(bytev.length);
+                // 大于1000bites的图片我们才弄下来，消除word中莫名的小图片的影响
+                if (bytev.length > 300) {
+                    FileOutputStream fos = new FileOutputStream(imageFile + pic.getFileName());
+                    fos.write(bytev);
+                }
+            }
+            fis.close();
+            return text;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     /**
      * 解析文件名字
-     *   Map<String,String> map = resolveName(fileName);
-     *         String media = map.get("media");
-     *         String name = map.get("name");
+     * Map<String,String> map = resolveName(fileName);
+     * String media = map.get("media");
+     * String name = map.get("name");
      */
     public static Map<String, String> resolveName(String fileName) {
         Map<String, String> map = new HashMap<>();
         int pointPos = fileName.lastIndexOf(".");
         String media = fileName.substring(pointPos + 1);
-        String name = fileName.substring(0,pointPos);
+        String name = fileName.substring(0, pointPos);
         map.put("media", media);
         map.put("name", name);
         return map;

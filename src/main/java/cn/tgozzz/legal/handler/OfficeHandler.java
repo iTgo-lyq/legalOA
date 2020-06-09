@@ -14,12 +14,19 @@ import static org.springframework.web.reactive.function.server.ServerResponse.*;
 @Component
 public class OfficeHandler {
 
+    /**
+     * 获取缩略图，参数查看onlyOffice文档
+     */
     public Mono<ServerResponse> convert(ServerRequest request) {
 
         return request.bodyToMono(ConvertUnit.class)
                 .flatMap(Office::convert)
                 .flatMap(s -> ok().contentType(APPLICATION_JSON).bodyValue(s));
     }
+
+    /**
+     * 插入图片
+     */
 
     @Data
     @NoArgsConstructor

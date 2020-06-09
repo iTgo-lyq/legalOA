@@ -26,6 +26,12 @@ public class OpenApiRouter {
                 .build();
     }
 
+    RouterFunction<ServerResponse> verifyRouter(VerifyHandler handler) {
+        return route()
+                .GET("/open-api/verify", handler::verify)
+                .build();
+    }
+
     /**
      * 图片上传下载相关接口，不支持覆盖
      */
