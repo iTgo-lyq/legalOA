@@ -20,7 +20,7 @@ public class LegalOaApplication implements WebFluxConfigurer {
 		registry.addMapping("/**")
 				.allowedOrigins("*")
 				.allowedMethods("*")
-				.maxAge(3600);
+				.maxAge(3500);
 	}
 
 	// 配置静态资源目录
