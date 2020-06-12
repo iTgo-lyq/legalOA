@@ -23,7 +23,8 @@ public class ProjectRouter {
     RouterFunction<ServerResponse> tempContractRoute(ContractHandler handler) {
         return route()
                 .POST("/project/temp/contracts", contentType(MULTIPART_FORM_DATA), handler::uploadTempContract)
-                .build();
+                .build()
+                .filter(authFilter::attributeTokenFilter);
     }
 
     @Bean
