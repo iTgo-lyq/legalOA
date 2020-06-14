@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head runat="server">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <title>ONLYOFFICE</title>
+    <link rel="icon"
+        href="images/text.ico"
+        type="image/x-icon" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/editor.css" />
+</head>
+<body>
+    <div class="form">
+        <div id="iframeEditor">
+        </div>
+    </div>
+    <script type="text/javascript" src="http://47.100.222.159:2022/web-apps/apps/api/documents/api.js"></script>
+    <script type="text/javascript" language="javascript">
+
+        var docEditor;
+
+        var innerAlert = function (message) {
+            if (console && console.log)
+                console.log(message);
+        };
+
+        var onAppReady = function () {
+            innerAlert("Document editor ready");
+        };
+
+        var onDocumentStateChange = function (event) {
+            var title = document.title.replace(/\*$/g, "");
+            document.title = title + (event.data ? "*" : "");
+        };
+
+        var onRequestEditRights = function () {
+            location.href = location.href.replace(RegExp("mode=view\&?", "i"), "");
+        };
+
+        var onRequestHistory = function (event) {
+            var historyObj = [{"changes":null,"key":"__ffff_127.0.0.1http___legal.tgozzz.cn_office_files___ffff_127.0.0.1_new.docx1587724965536","version":1,"created":"2020-04-24 18:42:45","user":{"id":"uid-1","name":"John Smith"}},{"serverVersion":"5.5.1","changes":[{"created":"2020-04-24 11:01:35","user":{"id":"uid-1","name":"John Smith"}}],"key":"__ffff_127.0.0.1http___legal.tgozzz.cn_office_files___ffff_127.0.0.1_new.docx11587726461870","version":2,"created":"2020-04-24 11:01:35","user":{"id":"uid-1","name":"John Smith"}}] || null;
+
+            docEditor.refreshHistory(
+                {
+                    currentVersion: "2",
+                    history: historyObj
+                });
+        };
+
+        var onRequestHistoryData = function (data) {
+            var version = data.data;
+            var historyData = [{"version":1,"key":"__ffff_127.0.0.1http___legal.tgozzz.cn_office_files___ffff_127.0.0.1_new.docx1587724965536","url":"http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/new.docx-history/1/prev.docx"},{"version":2,"key":"__ffff_127.0.0.1http___legal.tgozzz.cn_office_files___ffff_127.0.0.1_new.docx11587726461870","url":"http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/new.docx","previous":{"key":"__ffff_127.0.0.1http___legal.tgozzz.cn_office_files___ffff_127.0.0.1_new.docx1587724965536","url":"http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/new.docx-history/1/prev.docx"},"changesUrl":"http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/new.docx-history/1/diff.zip"}] || null;
+
+            docEditor.setHistoryData(historyData[version-1]);
+        };
+
+        var onRequestHistoryClose = function (event){
+            document.location.reload();
+        };
+
+        var onError = function (event) {
+            if (event)
+                innerAlert(event.data);
+        };
+
+        var onOutdatedVersion = function (event) {
+            location.reload(true);
+        };
+
+        var connectEditor = function () {
+
+            docEditor = new DocsAPI.DocEditor("iframeEditor", {"width": "100%",
+"height": "100%",
+"type": "desktop",
+"documentType": "text",
+"token": "",
+"document": {
+    "title": "new.docx",
+    "url": "http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/new.docx",
+    "fileType": "docx",
+    "key": "__ffff_127.0.0.1http___legal.tgozzz.cn_office_files___ffff_127.0.0.1_new.docx11587726461870",
+    "info": {
+        "author": "Me",
+        "created": "Sun Apr 26 2020"
+    },
+    "permissions": {
+        "comment": true,
+        "download": true,
+        "edit": true,
+        "fillForms": true,
+        "modifyFilter": true,
+        "modifyContentControl": true,
+        "review": true
+    }
+},
+"editorConfig": {
+    "mode": "edit",
+    "lang": "en",
+    "callbackUrl": "http://legal.tgozzz.cn/office/track?filename=new.docx&useraddress=__ffff_127.0.0.1",
+    "user": {
+        "id": "uid-1",
+        "name": "John Smith"
+    },
+    "embedded": {
+        "saveUrl": "http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/new.docx",
+        "embedUrl": "http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/new.docx",
+        "shareUrl": "http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/new.docx",
+        "toolbarDocked": "top"
+    },
+    "customization": {
+        "about": true,
+        "chat": true,
+        "comments": true,
+        "feedback": true,
+        "forcesave": false,
+        "goback": {
+            "url": "http://legal.tgozzz.cn/office/"
+        }
+    },
+    "fileChoiceUrl": "",
+    "plugins": {"pluginsData":[]}
+}
+,
+                    events: {
+                        "onAppReady": onAppReady,
+                        "onDocumentStateChange": onDocumentStateChange,
+                        'onRequestEditRights': onRequestEditRights,
+                        "onError": onError,
+                        "onRequestHistory":  onRequestHistory,
+                        "onRequestHistoryData": onRequestHistoryData,
+                        "onRequestHistoryClose": onRequestHistoryClose,
+                        "onOutdatedVersion": onOutdatedVersion,
+                    }
+            });
+
+            fixSize();
+        };
+
+        var fixSize = function () {
+            var wrapEl = document.getElementsByClassName("form");
+            if (wrapEl.length) {
+                wrapEl[0].style.height = screen.availHeight + "px";
+                window.scrollTo(0, -1);
+                wrapEl[0].style.height = window.innerHeight + "px";
+            }
+        };
+
+        if (window.addEventListener) {
+            window.addEventListener("load", connectEditor);
+            window.addEventListener("resize", fixSize);
+        } else if (window.attachEvent) {
+            window.attachEvent("onload", connectEditor);
+            window.attachEvent("onresize", fixSize);
+        }
+
+    </script>
+</body>
+</html>

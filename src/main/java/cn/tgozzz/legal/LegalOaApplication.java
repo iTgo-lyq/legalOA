@@ -26,6 +26,9 @@ public class LegalOaApplication implements WebFluxConfigurer {
 	// 配置静态资源目录
 	@Override
 	public void addResourceHandlers(ResourceHandlerRegistry registry) {
+		registry.addResourceHandler( "/static/**")
+				.addResourceLocations("classpath:dist/static/")
+				.setCacheControl(CacheControl.noCache());
 		registry.addResourceHandler( "/admin/**")
 				.addResourceLocations("classpath:admin/")
 				.setCacheControl(CacheControl.noCache());
