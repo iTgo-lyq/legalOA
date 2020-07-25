@@ -220,7 +220,7 @@ public class ImageUtils {
     }
 
     public static void main(String[] args) {
-        Png p = Png.readFrom("D:/test/image1.png");
+        Png p = Png.readFrom("D:/test/image2.png");
 //        p.clearIEXT();
 //        p.setIEXT("1121312312");
         System.out.println(p.readIEXT());

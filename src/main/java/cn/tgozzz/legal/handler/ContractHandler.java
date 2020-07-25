@@ -3,11 +3,17 @@ package cn.tgozzz.legal.handler;
 import cn.tgozzz.legal.domain.*;
 import cn.tgozzz.legal.exception.CommonException;
 import cn.tgozzz.legal.repository.*;
+import cn.tgozzz.legal.utils.ImageUtils;
 import cn.tgozzz.legal.utils.Office;
+import cn.tgozzz.legal.utils.SecurityUtils;
+import cn.tgozzz.legal.utils.WordUtils;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ZeroCopyHttpOutputMessage;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
@@ -15,6 +21,10 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -99,9 +109,9 @@ public class ContractHandler {
                                     .upload(part, contract.getCid())
                                     // 判断上传情况
                                     .filter(s -> !s.contains("filename"))
-                                    .flatMap(s -> Mono.error(new CommonException(501, "中奖了，文件上传失败 "+s)))
+                                    .flatMap(s -> Mono.error(new CommonException(501, "中奖了，文件上传失败 " + s)))
                                     .defaultIfEmpty(contract)
-                                    .map(obj -> (Contract)obj)
+                                    .map(obj -> (Contract) obj)
                             );
                 })
                 .doOnNext(contract -> {
@@ -155,9 +165,9 @@ public class ContractHandler {
                                     .upload(part, contract.getCid())
                                     // 判断上传情况
                                     .filter(s -> !s.contains("filename"))
-                                    .flatMap(s -> Mono.error(new CommonException(501, "中奖了，文件上传失败 "+s)))
+                                    .flatMap(s -> Mono.error(new CommonException(501, "中奖了，文件上传失败 " + s)))
                                     .defaultIfEmpty(contract)
-                                    .map(obj -> (Contract)obj)
+                                    .map(obj -> (Contract) obj)
                             );
                 })
                 .doOnNext(contract -> {
@@ -593,6 +603,31 @@ public class ContractHandler {
     }
 
     /**
+     * 下载合同文件，进过签名标记可验签
+     */
+    public Mono<ServerResponse> download(ServerRequest request) {
+        log.info("download");
+        User user = (User) request.attribute("user_info").get();
+        String cid = request.pathVariable("cid");
+        String pid = request.pathVariable("pid");
+        String fullFilename = request.queryParam("filename").get();
+
+        String url = "http://legal.tgozzz.cn/office/files/__ffff_127.0.0.1/" + cid;
+
+        return this.checkCidAndPid(cid, pid)
+                .thenReturn(fullFilename)
+                .filter(s -> !s.contains("docx"))
+                .thenReturn(new Office.DocxConvertUnit(cid, fullFilename, url))
+                .flatMap(Office::downloadAsDocx)
+                .switchIfEmpty(Office.download(url))
+                .map(bfile -> WordUtils.addWeiFanSignature(bfile, ImageUtils.base64ToByte(user.getSigns().get(0))))
+                .flatMap(bfile -> ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + fullFilename)
+                        .contentType(APPLICATION_OCTET_STREAM)
+                        .bodyValue(bfile));
+    }
+
+    /**
      * 校验id参数 是否有效
      * 无效抛出异常
      */
@@ -644,6 +679,27 @@ public class ContractHandler {
                     }
                 })
                 .thenReturn(res);
+    }
+
+    /**
+     * 将InputStream写入本地文件
+     *
+     * @param destination 写入本地目录
+     * @param input       输入流
+     * @throws IOException IOException
+     */
+    public static void writeToLocal(String destination, InputStream input)
+            throws IOException {
+        int index;
+        byte[] bytes = new byte[1024];
+        FileOutputStream downloadFile = new FileOutputStream(destination);
+        while ((index = input.read(bytes)) != -1) {
+            downloadFile.write(bytes, 0, index);
+            downloadFile.flush();
+        }
+        input.close();
+        downloadFile.close();
+
     }
 
     @Data

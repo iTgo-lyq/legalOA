@@ -24,10 +24,6 @@ public class OfficeHandler {
                 .flatMap(s -> ok().contentType(APPLICATION_JSON).bodyValue(s));
     }
 
-    /**
-     * 插入图片
-     */
-
     @Data
     @NoArgsConstructor
     public static class ConvertUnit {

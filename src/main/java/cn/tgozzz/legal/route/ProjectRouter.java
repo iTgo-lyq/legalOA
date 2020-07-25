@@ -42,6 +42,7 @@ public class ProjectRouter {
                         .PUT("", handler::applyToEdit)
                         .PATCH("", handler::addEditInfo)
                         .DELETE("", handler::deleteContract)
+                        .GET("/download", handler::download)
                         .GET("/audit", handler::applyToAudit)
                         .POST("/audit", handler::addAuditInfo)
                         .POST("/back", handler::moveToEdit)
