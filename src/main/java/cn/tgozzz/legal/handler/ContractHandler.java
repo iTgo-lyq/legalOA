@@ -738,6 +738,7 @@ public class ContractHandler {
                 .map(ImageUtils::base64ToByte)
                 .map(ImageUtils.Png::incise)
                 .doOnNext(png -> png.setIEXT(jsonBody))
+                .doOnNext(png -> System.out.println(png.getBase64()))
                 .map(ImageUtils.Png::getBytes);
     }
 
