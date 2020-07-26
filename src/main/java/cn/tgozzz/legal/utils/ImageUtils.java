@@ -101,6 +101,7 @@ public class ImageUtils {
                 c.length = Arrays.copyOfRange(data, i, i + 4);
                 c.type = Arrays.copyOfRange(data, i + 4, i + 8);
                 int length = c.getLength();
+                System.out.println(length);
                 c.data = Arrays.copyOfRange(data, i + 8, i + 8 + length);
                 c.crc = Arrays.copyOfRange(data, i + 8 + length, i + 8 + length + 4);
                 p.chunks.add(c);
