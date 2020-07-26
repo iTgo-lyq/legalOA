@@ -24,7 +24,7 @@ public class ImageUtils {
         if (data.length < 3 || path.equals("")) return;
         try {
             File file = new File(path);
-            if(file.exists())
+            if (file.exists())
                 file.delete();
             FileImageOutputStream imageOutput = new FileImageOutputStream(file);
             imageOutput.write(data, 0, data.length);
@@ -43,7 +43,7 @@ public class ImageUtils {
 
     //base64字符串到byte数组
     public static byte[] base64ToByte(String data) {
-        return Base64.getDecoder().decode(data);
+        return Base64.getDecoder().decode(removeBase64Header(data));
     }
 
     //图片到byte数组
@@ -220,10 +220,13 @@ public class ImageUtils {
     }
 
     public static void main(String[] args) {
-        Png p = Png.readFrom("D:/test/image2.png");
+//        Png p = Png.readFrom("D:/test/image2.png");
 //        p.clearIEXT();
 //        p.setIEXT("1121312312");
-        System.out.println(p.readIEXT());
+//        System.out.println(p.readIEXT());
 //        byteToImage(p.getBytes(), "D:/test/image2.png");
+        String a = "data:image/png;base64,iVBOR";
+        int index = a.indexOf("base64");
+        System.out.println(a.substring(index + 7));
     }
 }

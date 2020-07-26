@@ -7,9 +7,11 @@ import cn.tgozzz.legal.utils.ImageUtils;
 import cn.tgozzz.legal.utils.Office;
 import cn.tgozzz.legal.utils.SecurityUtils;
 import cn.tgozzz.legal.utils.WordUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
@@ -25,10 +27,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.springframework.http.MediaType.*;
@@ -620,12 +619,24 @@ public class ContractHandler {
                 .thenReturn(new Office.DocxConvertUnit(cid, fullFilename, url))
                 .flatMap(Office::downloadAsDocx)
                 .switchIfEmpty(Office.download(url))
-                .map(bfile -> WordUtils.addWeiFanSignature(bfile, ImageUtils.base64ToByte(user.getSigns().get(0))))
+                .flatMap(bfile -> contractRepository
+                        .findById(cid)
+                        .flatMap(contract -> projectRepository
+                                .findById(pid)
+                                .flatMap(project -> createSignature(user, contract, project, bfile))
+                                .map(sign -> WordUtils.addWeiFanSignature(bfile, sign))))
                 .flatMap(bfile -> ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + fullFilename)
                         .contentType(APPLICATION_OCTET_STREAM)
                         .bodyValue(bfile));
     }
+
+    /**
+     * 核验签名有效性
+     */
+//    public Mono<ServerResponse> verify(ServerRequest request) {
+//
+//    }
 
     /**
      * 校验id参数 是否有效
@@ -702,6 +713,32 @@ public class ContractHandler {
 
     }
 
+    @SneakyThrows
+    public Mono<byte[]> createSignature(User u, Contract c, Project p, byte[] bfile) {
+        SignatureBody body = new SignatureBody();
+        body.setLoadTime(new Date().getTime());
+        body.setLoaderName(u.getName());
+        body.setLoaderId(u.getUid());
+        body.setContractName(c.getBaseInfo().getName());
+        body.setCid(c.getCid());
+        body.setProjectName(p.getBaseInfo().getName());
+        body.setPid(p.getPid());
+        body.setModifierName(c.getHistories().get(c.getHistories().size() - 1).getModifierName());
+        body.setModifierId(c.getHistories().get(c.getHistories().size() - 1).getModifierUid());
+        body.setSummary(SecurityUtils.getSHA256(WordUtils.getContent(bfile)));
+
+        ObjectMapper mapper = new ObjectMapper();
+        String jsonBody = mapper.writeValueAsString(body);
+
+        return userRepository
+                .findById(body.getModifierId())
+                .map(user -> user.getSigns().get(0))
+                .map(ImageUtils::base64ToByte)
+                .map(ImageUtils.Png::incise)
+                .doOnNext(png -> png.setIEXT(jsonBody))
+                .map(ImageUtils.Png::getBytes);
+    }
+
     @Data
     @NoArgsConstructor
     public static class AddInfoUnit {
@@ -734,5 +771,21 @@ public class ContractHandler {
     public static class ApplyToEditResult {
         private Contract contract;
         private String config;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SignatureBody {
+        private long loadTime;
+        private String loaderName;
+        private String loaderId;
+        private String contractName;
+        private String cid;
+        private String modifierName;
+        private String modifierId;
+        private String projectName;
+        private String pid;
+        private String summary;
     }
 }

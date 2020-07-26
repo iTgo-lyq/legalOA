@@ -1,7 +1,5 @@
 package cn.tgozzz.legal.utils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.java.Log;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.reactive.function.client.WebClient;

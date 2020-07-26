@@ -4,6 +4,7 @@ import cn.tgozzz.legal.exception.CommonException;
 import lombok.SneakyThrows;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.converter.WordToHtmlConverter;
+import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.poifs.filesystem.DirectoryEntry;
 import org.apache.poi.poifs.filesystem.DocumentEntry;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
@@ -246,7 +247,7 @@ public class WordUtils {
         XWPFParagraph paragraph = document.createParagraph();
         XWPFRun run = paragraph.createRun();
         // 设置图片
-        run.setText("微泛电子签名: ");
+        run.setText("文档最终负责人（微泛）：");
         // 添加浮动图片
         run = paragraph.createRun();
         run.addPicture(imgIn, Document.PICTURE_TYPE_PNG, "WeiFan__signature", Units.toEMU(100), Units.toEMU(30));
@@ -305,6 +306,15 @@ public class WordUtils {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * 加密获取摘要
+     */
+    @SneakyThrows
+    public static String getContent(byte[] bfile) {
+        WordExtractor ex = new WordExtractor(new ByteArrayInputStream(bfile));
+        return ex.getText();
     }
 
     /**
