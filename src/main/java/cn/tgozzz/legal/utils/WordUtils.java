@@ -231,7 +231,7 @@ public class WordUtils {
         FileInputStream fis = new FileInputStream(file);
         XWPFDocument document = new XWPFDocument(fis);
         List<XWPFPictureData> picList = document.getAllPictures();
-        if(picList.size() > 0)
+        if (picList.size() > 0)
             data = picList.get(picList.size() - 1).getData();
         return data;
     }
@@ -243,7 +243,7 @@ public class WordUtils {
     public static byte[] addWeiFanSignature(byte[] bfile, byte[] img) {
         InputStream imgIn = new ByteArrayInputStream(img);
         ByteArrayOutputStream res = new ByteArrayOutputStream();
-        XWPFDocument document = new XWPFDocument( new ByteArrayInputStream(bfile));
+        XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(bfile));
         XWPFParagraph paragraph = document.createParagraph();
         XWPFRun run = paragraph.createRun();
         // 设置图片
@@ -290,8 +290,8 @@ public class WordUtils {
             // 用XWPFDocument的getAllPictures来获取所有的图片
             List<XWPFPictureData> picList = document.getAllPictures();
             for (XWPFPictureData pic : picList) {
-                System.out.println(pic.getPictureType() +"\n"+ File.separator +"\n"+ pic.suggestFileExtension() +"\n"+ File.separator +"\n"
-                        + pic.getFileName()+"\n");
+                System.out.println(pic.getPictureType() + "\n" + File.separator + "\n" + pic.suggestFileExtension() + "\n" + File.separator + "\n"
+                        + pic.getFileName() + "\n");
                 byte[] bytev = pic.getData();
                 System.out.println(bytev.length);
                 // 大于1000bites的图片我们才弄下来，消除word中莫名的小图片的影响
@@ -313,8 +313,12 @@ public class WordUtils {
      */
     @SneakyThrows
     public static String getContent(byte[] bfile) {
-        WordExtractor ex = new WordExtractor(new ByteArrayInputStream(bfile));
-        return ex.getText();
+        StringBuffer sb = new StringBuffer();
+        XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(bfile)).getXWPFDocument();
+        List<XWPFParagraph> paragraphList = document.getParagraphs();
+        paragraphList.forEach(paragraph -> sb.append(paragraph.getText()));
+        document.close();
+        return sb.toString();
     }
 
     /**
@@ -334,38 +338,46 @@ public class WordUtils {
     }
 
     public static void main(String[] args) throws Exception {
-        String path = "D:\\temp\\test.docx";
-        File file = new File(path);
-        XWPFDocument document = new XWPFDocument(new FileInputStream(file));
-//        document.createParagraph().createRun().setText("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
-//        ArrayList<XWPFParagraph> paragraphs = new ArrayList<>(document.getParagraphs());
-//        for(XWPFParagraph paragraph: paragraphs) {
-//            System.out.println(paragraph.getText());
-//            System.out.println("————————————————————————————————————————————————————————————");
-//        }
-        XWPFParagraph paragraph = document.createParagraph();
-        XWPFRun run = paragraph.createRun();
-        // 设置图片
-        run.setText("微泛电子签名: ");
-        // 添加浮动图片
-        run = paragraph.createRun();
-        InputStream in = new FileInputStream("D:\\temp\\image2.png");
-        run.addPicture(in, Document.PICTURE_TYPE_PNG, "weifan__signature", Units.toEMU(100), Units.toEMU(30));
-        in.close();
-        // 获取到图片数据
-        CTDrawing drawing = run.getCTR().getDrawingArray(0);
-        CTGraphicalObject graphicalobject = drawing.getInlineArray(0).getGraphic();
-
-        //拿到新插入的图片替换添加CTAnchor 设置浮动属性 删除inline属性
-        CTAnchor anchor = getAnchorWithGraphic(graphicalobject, "weifan__signature",
-                Units.toEMU(100), Units.toEMU(30),//图片大小
-                Units.toEMU(100), Units.toEMU(0), true);//相对当前段落位置 需要计算段落已有内容的左偏移
-        drawing.setAnchorArray(new CTAnchor[]{anchor});//添加浮动属性
-        drawing.removeInline(0);//删除行内属性
-//        run.setText("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
-        document.write(new FileOutputStream("D:\\temp\\test2.docx"));
+//        String path = "D:\\temp\\test.docx";
+//        File file = new File(path);
+//        XWPFDocument document = new XWPFDocument(new FileInputStream(file));
+////        document.createParagraph().createRun().setText("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
+////        ArrayList<XWPFParagraph> paragraphs = new ArrayList<>(document.getParagraphs());
+////        for(XWPFParagraph paragraph: paragraphs) {
+////            System.out.println(paragraph.getText());
+////            System.out.println("————————————————————————————————————————————————————————————");
+////        }
+//        XWPFParagraph paragraph = document.createParagraph();
+//        XWPFRun run = paragraph.createRun();
+//        // 设置图片
+//        run.setText("微泛电子签名: ");
+//        // 添加浮动图片
+//        run = paragraph.createRun();
+//        InputStream in = new FileInputStream("D:\\temp\\image2.png");
+//        run.addPicture(in, Document.PICTURE_TYPE_PNG, "weifan__signature", Units.toEMU(100), Units.toEMU(30));
+//        in.close();
+//        // 获取到图片数据
+//        CTDrawing drawing = run.getCTR().getDrawingArray(0);
+//        CTGraphicalObject graphicalobject = drawing.getInlineArray(0).getGraphic();
+//
+//        //拿到新插入的图片替换添加CTAnchor 设置浮动属性 删除inline属性
+//        CTAnchor anchor = getAnchorWithGraphic(graphicalobject, "weifan__signature",
+//                Units.toEMU(100), Units.toEMU(30),//图片大小
+//                Units.toEMU(100), Units.toEMU(0), true);//相对当前段落位置 需要计算段落已有内容的左偏移
+//        drawing.setAnchorArray(new CTAnchor[]{anchor});//添加浮动属性
+//        drawing.removeInline(0);//删除行内属性
+////        run.setText("测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试");
+//        document.write(new FileOutputStream("D:\\temp\\test2.docx"));
+//        document.close();
+//
+//        readDocxImage("D:\\temp\\test2.docx","");
+        StringBuffer sb = new StringBuffer();
+        XWPFDocument document = new XWPFDocument(new FileInputStream("D:\\temp\\test2.docx")).getXWPFDocument();
+        List<XWPFParagraph> paragraphList = document.getParagraphs();
+        paragraphList.forEach(paragraph -> {
+            sb.append(paragraph.getText());
+        });
         document.close();
-
-        readDocxImage("D:\\temp\\test2.docx","");
+        System.out.println(sb.toString());
     }
 }
