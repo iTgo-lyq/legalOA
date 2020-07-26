@@ -91,6 +91,7 @@ public class ImageUtils {
 
         // 切割数据块
         public static Png incise(byte[] data) {
+            System.out.println(byteToBase64(data));
             if (data.length < 8) return null;
 
             Png p = new Png();
