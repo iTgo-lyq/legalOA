@@ -732,7 +732,9 @@ public class ContractHandler {
 
         return userRepository
                 .findById(body.getModifierId())
+                .doOnNext(user -> System.out.println(user.getUid()))
                 .map(user -> user.getSigns().get(0))
+                .doOnNext(System.out::println)
                 .map(ImageUtils::base64ToByte)
                 .map(ImageUtils.Png::incise)
                 .doOnNext(png -> png.setIEXT(jsonBody))
