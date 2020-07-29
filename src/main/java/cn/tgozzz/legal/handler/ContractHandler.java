@@ -645,7 +645,7 @@ public class ContractHandler {
                 .map(Contract::getUri)
                 .flatMap(Office::download)
                 .map(bfile -> {
-                    String summary = SecurityUtils.getSHA256(WordUtils.getContent(bfile) + "文档最终负责人（微泛）：");
+                    String summary = SecurityUtils.getSHA256(WordUtils.getContent(bfile));
                     String jsonBody = WordUtils.resolveWeiFanSignature(bfile);
                     ObjectMapper mapper = new ObjectMapper();
                     SignatureBody body = null;
@@ -751,7 +751,7 @@ public class ContractHandler {
         body.setPid(p.getPid());
         body.setModifierName(c.getHistories().get(c.getHistories().size() - 1).getModifierName());
         body.setModifierId(c.getHistories().get(c.getHistories().size() - 1).getModifierUid());
-        body.setSummary(SecurityUtils.getSHA256(WordUtils.getContent(bfile)));
+        body.setSummary(SecurityUtils.getSHA256(WordUtils.getContent(bfile) + "文档最终负责人（微泛）："));
 
         ObjectMapper mapper = new ObjectMapper();
         String jsonBody = mapper.writeValueAsString(body);
