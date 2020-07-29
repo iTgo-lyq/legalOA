@@ -327,6 +327,7 @@ public class WordUtils {
         List<XWPFParagraph> paragraphList = document.getParagraphs();
         paragraphList.forEach(paragraph -> sb.append(paragraph.getText()));
         document.close();
+        System.out.println(sb.toString());
         return sb.toString();
     }
 

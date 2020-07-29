@@ -352,27 +352,27 @@ public class SecurityUtils {
     }
 
     public static void main(String[] args) throws Exception {
-        System.out.println("--------------系统公钥加密 系统私钥解密-------------------");
-        String filePath1 = "D:/temp/system/";
-        SecurityUtils.genKeyPair(filePath1);
-        String plainText = "这是原文数据";
-        System.out.println("原文：" + plainText);
-        String cipher = SecurityUtils.encryptToBase64(SecurityUtils.loadPublicKeyByStr(SecurityUtils.loadPublicKeyByFile(filePath1)), plainText.getBytes());
-        System.out.println("加密：" + cipher);
-        String res = SecurityUtils.decryptToString(SecurityUtils.loadPrivateKeyByStr(SecurityUtils.loadPrivateKeyByFile(filePath1)), Base64.getDecoder().decode(cipher));
-        System.out.println("解密：" + res);
-        System.out.println();
-
-        System.out.println("--------------用户私钥签名 用户公钥验签-------------------");
-        String filePath2 = "D:/temp/user";
-        SecurityUtils.genKeyPair(filePath2);
-        String mainText = "合同正文是我";
-        System.out.println("正文：" + plainText);
-        String summaryInfo = SecurityUtils.getSHA256(mainText);
-        System.out.println("摘要：" + summaryInfo);
-        String signature = SecurityUtils.sign(summaryInfo, SecurityUtils.loadPrivateKeyByFile(filePath2));
-        System.out.println("签名：" + signature);
-        System.out.println("验签结果："+SecurityUtils.doCheck(summaryInfo, signature, SecurityUtils.loadPublicKeyByFile(filePath2)));
-        System.out.println();
+//        System.out.println("--------------系统公钥加密 系统私钥解密-------------------");
+//        String filePath1 = "D:/temp/system/";
+//        SecurityUtils.genKeyPair(filePath1);
+//        String plainText = "这是原文数据";
+//        System.out.println("原文：" + plainText);
+//        String cipher = SecurityUtils.encryptToBase64(SecurityUtils.loadPublicKeyByStr(SecurityUtils.loadPublicKeyByFile(filePath1)), plainText.getBytes());
+//        System.out.println("加密：" + cipher);
+//        String res = SecurityUtils.decryptToString(SecurityUtils.loadPrivateKeyByStr(SecurityUtils.loadPrivateKeyByFile(filePath1)), Base64.getDecoder().decode(cipher));
+//        System.out.println("解密：" + res);
+//        System.out.println();
+//
+//        System.out.println("--------------用户私钥签名 用户公钥验签-------------------");
+//        String filePath2 = "D:/temp/user";
+//        SecurityUtils.genKeyPair(filePath2);
+//        String mainText = "合同正文是我";
+//        System.out.println("正文：" + plainText);
+//        String summaryInfo = SecurityUtils.getSHA256(mainText);
+//        System.out.println("摘要：" + summaryInfo);
+//        String signature = SecurityUtils.sign(summaryInfo, SecurityUtils.loadPrivateKeyByFile(filePath2));
+//        System.out.println("签名：" + signature);
+//        System.out.println("验签结果："+SecurityUtils.doCheck(summaryInfo, signature, SecurityUtils.loadPublicKeyByFile(filePath2)));
+//        System.out.println();
     }
 }
