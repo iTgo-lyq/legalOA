@@ -7,6 +7,7 @@ import cn.tgozzz.legal.utils.ImageUtils;
 import cn.tgozzz.legal.utils.Office;
 import cn.tgozzz.legal.utils.SecurityUtils;
 import cn.tgozzz.legal.utils.WordUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -634,9 +635,34 @@ public class ContractHandler {
     /**
      * 核验签名有效性
      */
-//    public Mono<ServerResponse> verify(ServerRequest request) {
-//
-//    }
+    public Mono<ServerResponse> verify(ServerRequest request) {
+        log.info("verify");
+
+        String cid = request.pathVariable("cid");
+
+        return contractRepository.findById(cid)
+                .switchIfEmpty(Mono.error(new CommonException(404, "cid 无效")))
+                .map(Contract::getUri)
+                .flatMap(Office::download)
+                .map(bfile -> {
+                    String summary = SecurityUtils.getSHA256(WordUtils.getContent(bfile));
+                    String jsonBody = WordUtils.resolveWeiFanSignature(bfile);
+                    ObjectMapper mapper = new ObjectMapper();
+                    SignatureBody body = null;
+
+                    try {
+                        body = mapper.readValue(jsonBody, SignatureBody.class);
+                    } catch (JsonProcessingException ignored) {
+                    }
+
+                    if (!summary.equals(body.getSummary())) {
+                        body.setSummary("");
+                    }
+
+                    return body;
+                })
+                .flatMap(signatureBody -> ok().contentType(APPLICATION_JSON).bodyValue(signatureBody));
+    }
 
     /**
      * 校验id参数 是否有效
@@ -732,13 +758,10 @@ public class ContractHandler {
 
         return userRepository
                 .findById(body.getModifierId())
-                .doOnNext(user -> System.out.println(user.getUid()))
                 .map(user -> user.getSigns().get(0))
-                .doOnNext(System.out::println)
                 .map(ImageUtils::base64ToByte)
                 .map(ImageUtils.Png::incise)
                 .doOnNext(png -> png.setIEXT(jsonBody))
-                .doOnNext(png -> System.out.println(png.getBase64()))
                 .map(ImageUtils.Png::getBytes);
     }
 

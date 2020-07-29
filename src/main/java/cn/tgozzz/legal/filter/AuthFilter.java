@@ -25,7 +25,7 @@ public class AuthFilter {
     // 校验header的Authorization字段
     public Mono<ServerResponse> tokenFilter(ServerRequest request, HandlerFunction<ServerResponse> next) {
         List<String> header = request.headers().header("Authorization");
-        String tokenStr = header.isEmpty() ? "worn" : header.get(0);
+        String tokenStr = header.isEmpty() ? request.queryParam("token").orElse("worn") : header.get(0);
 
         if (tokenStr.equals("token"))
             return next.handle(request);

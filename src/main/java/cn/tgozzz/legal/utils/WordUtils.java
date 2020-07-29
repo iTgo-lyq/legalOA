@@ -4,7 +4,6 @@ import cn.tgozzz.legal.exception.CommonException;
 import lombok.SneakyThrows;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.converter.WordToHtmlConverter;
-import org.apache.poi.hwpf.extractor.WordExtractor;
 import org.apache.poi.poifs.filesystem.DirectoryEntry;
 import org.apache.poi.poifs.filesystem.DocumentEntry;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
@@ -226,10 +225,9 @@ public class WordUtils {
      * 获取最后一张图片bytes
      */
     @SneakyThrows
-    public static byte[] readLastDocxImage(File file) {
+    public static byte[] readLastDocxImage(byte[] bfile) {
         byte[] data = new byte[0];
-        FileInputStream fis = new FileInputStream(file);
-        XWPFDocument document = new XWPFDocument(fis);
+        XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(bfile));
         List<XWPFPictureData> picList = document.getAllPictures();
         if (picList.size() > 0)
             data = picList.get(picList.size() - 1).getData();
@@ -264,6 +262,17 @@ public class WordUtils {
         document.write(res);
         document.close();
         return res.toByteArray();
+    }
+
+    @SneakyThrows
+    public static String resolveWeiFanSignature(byte[] bfile) {
+        byte[] data = new byte[0];
+        XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(bfile));
+        List<XWPFPictureData> picList = document.getAllPictures();
+        if (picList.size() > 0)
+            data = picList.get(picList.size() - 1).getData();
+        ImageUtils.Png p = ImageUtils.Png.incise(data);
+        return p.readIEXT();
     }
 
     /**
@@ -370,14 +379,14 @@ public class WordUtils {
 //        document.write(new FileOutputStream("D:\\temp\\test2.docx"));
 //        document.close();
 //
-//        readDocxImage("D:\\temp\\test2.docx","");
-        StringBuffer sb = new StringBuffer();
-        XWPFDocument document = new XWPFDocument(new FileInputStream("D:\\temp\\test2.docx")).getXWPFDocument();
-        List<XWPFParagraph> paragraphList = document.getParagraphs();
-        paragraphList.forEach(paragraph -> {
-            sb.append(paragraph.getText());
-        });
-        document.close();
-        System.out.println(sb.toString());
+        String path = "D:\\temp\\89.docx";
+        byte[] data = new byte[0];
+        File file = new File(path);
+        XWPFDocument document = new XWPFDocument(new FileInputStream(file));
+        List<XWPFPictureData> picList = document.getAllPictures();
+        if (picList.size() > 0)
+            data = picList.get(picList.size() - 1).getData();
+        ImageUtils.Png p = ImageUtils.Png.incise(data);
+        System.out.println(p.readIEXT());
     }
 }
