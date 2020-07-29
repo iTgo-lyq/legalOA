@@ -44,7 +44,7 @@ public class AuthFilter {
      */
     public Mono<ServerResponse> attributeTokenFilter(ServerRequest request, HandlerFunction<ServerResponse> handlerFunction) {
         List<String> header = request.headers().header("Authorization");
-        String tokenStr = header.isEmpty() ? "worn" : header.get(0);
+        String tokenStr = header.isEmpty() ? request.queryParam("token").orElse("worn") : header.get(0);
 
         return tokenUtils.getUser(tokenStr)
                 .doOnNext(user -> request.attributes().put("user_info",user))
